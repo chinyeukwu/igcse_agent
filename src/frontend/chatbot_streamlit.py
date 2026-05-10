@@ -376,7 +376,7 @@ def show_quiz_page(api_url: str):
 
                         if response.status_code == 200:
                             result = response.json()
-                            st.session_state.quiz_score = result.get("score", 0)
+                            st.session_state.quiz_result = result
                             st.session_state.quiz_submitted = True
                             st.rerun()
                         else:
@@ -394,13 +394,15 @@ def show_quiz_page(api_url: str):
         st.markdown("---")
         st.markdown("### 🎯 Quiz Results")
 
-        score = st.session_state.quiz_score
-        percentage = (score / len(st.session_state.current_quiz.get("questions", []))) * 100
+        result = st.session_state.get("quiz_result", {})
+        correct_count = result.get("correct_count", 0)
+        total_questions = result.get("total_questions", 1)
+        percentage = result.get("percentage", 0)
 
         # Score display
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("Your Score", f"{int(score)}/{len(st.session_state.current_quiz.get('questions', []))}")
+            st.metric("Your Score", f"{correct_count}/{total_questions}")
         with col2:
             st.metric("Percentage", f"{percentage:.1f}%")
 
