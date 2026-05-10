@@ -452,10 +452,21 @@ def show_quiz_page(api_url: str):
                     # Track questions to prevent repetition in future quizzes
                     subject_key = subject.lower()
                     questions = quiz_data.get("questions", [])
+
+                    # Get current used questions for this subject
+                    current_used = st.session_state.used_questions[subject_key].copy()
+
+                    # Add new questions to the set
                     for q in questions:
                         question_text = q.get("question", "")
                         if question_text:
-                            st.session_state.used_questions[subject_key].add(question_text)
+                            current_used.add(question_text)
+
+                    # IMPORTANT: Reassign to trigger Streamlit state update
+                    st.session_state.used_questions[subject_key] = current_used
+
+                    # Log for debugging
+                    st.write(f"DEBUG: Tracked {len(current_used)} questions for {subject_key}")
 
                     st.session_state.current_quiz = quiz_data
                     st.session_state.user_answers = {}
