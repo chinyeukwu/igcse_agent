@@ -63,39 +63,135 @@ def show_chat_interface():
     api_url = config.fastapi_url
     api_key = config.openai_key
 
-    # Title and sidebar
-    st.title("🤖 IGCSE Tutor")
-    st.markdown("Your AI-powered study companion for IGCSE exams")
+    # Page styling with gradient colors
+    st.markdown(
+        """
+        <style>
+        .main-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .menu-button {
+            border-radius: 10px;
+            padding: 15px;
+            margin: 8px 0;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-align: left;
+            font-size: 16px;
+        }
+        .menu-button-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .menu-button-inactive {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+        }
+        .menu-button:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .sidebar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .user-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .status-online {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .status-offline {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    # Sidebar
+    # Title and sidebar
+    st.markdown('<div class="main-title"><h1>🤖 IGCSE Tutor</h1><p>Your AI-powered study companion for IGCSE exams</p></div>', unsafe_allow_html=True)
+
+    # Sidebar with colorful menu
     with st.sidebar:
-        st.markdown("## 📚 Menu")
-        page = st.radio(
-            "Navigate",
-            ["💬 Ask a Question", "📝 Take a Quiz", "📊 Progress", "⚙️ Settings"],
-            key="main_menu",
-        )
+        st.markdown('<div class="sidebar-header"><h2>📚 Navigation</h2></div>', unsafe_allow_html=True)
+
+        # Get current page from session state
+        current_page = st.session_state.get("page", "💬 Ask a Question")
+
+        # Create menu buttons
+        col1 = st.columns(1)[0]
+
+        menu_items = [
+            ("💬 Ask a Question", "💬 Ask a Question"),
+            ("📝 Take a Quiz", "📝 Take a Quiz"),
+            ("📊 Progress", "📊 Progress"),
+            ("⚙️ Settings", "⚙️ Settings"),
+        ]
+
+        for icon_label, page_name in menu_items:
+            is_active = current_page == page_name
+            button_style = "menu-button menu-button-active" if is_active else "menu-button menu-button-inactive"
+
+            if st.button(
+                icon_label,
+                key=f"menu_{page_name}",
+                use_container_width=True,
+                help=f"Go to {page_name}"
+            ):
+                st.session_state.page = page_name
+                st.rerun()
 
         st.markdown("---")
 
-        # New chat button
-        if st.button("➕ New Chat", key="new_chat_btn"):
+        # New chat button with gradient
+        if st.button("➕ New Chat", key="new_chat_btn", use_container_width=True):
             st.session_state.chat_session_id = str(uuid.uuid4())
             st.session_state.chat_history = []
             st.rerun()
 
         st.markdown("---")
 
-        # Offline mode indicator
+        # Status indicator
         if st.session_state.is_offline:
-            st.warning("🔴 **Offline Mode** - Limited functionality")
+            st.markdown('<div class="status-offline">🔴 <b>Offline Mode</b><br/>Limited functionality</div>', unsafe_allow_html=True)
         else:
-            st.success("🟢 **Online** - Full features available")
+            st.markdown('<div class="status-online">🟢 <b>Online</b><br/>Full features available</div>', unsafe_allow_html=True)
 
         # User info and logout
         show_logout_button(api_url)
 
     # Main content based on selected page
+    page = st.session_state.get("page", "💬 Ask a Question")
+
     if page == "💬 Ask a Question":
         show_ask_question_page(api_url)
     elif page == "📝 Take a Quiz":
@@ -113,8 +209,12 @@ def show_ask_question_page(api_url: str):
     Args:
         api_url: FastAPI base URL
     """
-    st.markdown("## 💬 Ask Your Question")
-    st.markdown("Ask anything about IGCSE subjects: English, Maths, Science, French, Fine Arts")
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 15px; margin-bottom: 20px;">
+        <h2 style="color: white; margin: 0;">💬 Ask Your Question</h2>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Ask anything about IGCSE subjects: English, Maths, Science, French, Fine Arts</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Load chat history from database if not already loaded
     if not st.session_state.chat_history and st.session_state.user_id:
@@ -253,8 +353,12 @@ def show_ask_question_page(api_url: str):
 
 def show_quiz_page(api_url: str):
     """Display the quiz interface."""
-    st.markdown("## 📝 Take a Quiz")
-    st.markdown("Test your knowledge with IGCSE practice quizzes")
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 25px; border-radius: 15px; margin-bottom: 20px;">
+        <h2 style="color: white; margin: 0;">📝 Take a Quiz</h2>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Test your knowledge with IGCSE practice quizzes</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Initialize quiz session state
     if "current_quiz" not in st.session_state:
@@ -318,7 +422,11 @@ def show_quiz_page(api_url: str):
     # Display quiz
     if st.session_state.current_quiz and not st.session_state.quiz_submitted:
         st.markdown("---")
-        st.markdown("### 📋 Quiz Questions")
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+            <h3 style="color: white; margin: 0;">📋 Quiz Questions</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
         quiz_data = st.session_state.current_quiz
         questions = quiz_data.get("questions", [])
@@ -392,7 +500,11 @@ def show_quiz_page(api_url: str):
     # Display results
     if st.session_state.quiz_submitted and st.session_state.current_quiz:
         st.markdown("---")
-        st.markdown("### 🎯 Quiz Results")
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+            <h3 style="color: white; margin: 0;">🎯 Quiz Results</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
         result = st.session_state.get("quiz_result", {})
         correct_count = result.get("correct_count", 0)
@@ -456,7 +568,12 @@ def show_quiz_page(api_url: str):
 
 def show_progress_page():
     """Display user progress page."""
-    st.markdown("## 📊 Your Progress")
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 25px; border-radius: 15px; margin-bottom: 20px;">
+        <h2 style="color: white; margin: 0;">📊 Your Progress</h2>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Track your learning journey and achievements</p>
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown("Coming soon! Track your learning journey here...")
 
     col1, col2, col3, col4 = st.columns(4)
@@ -472,7 +589,12 @@ def show_progress_page():
 
 def show_settings_page():
     """Display settings page."""
-    st.markdown("## ⚙️ Settings")
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 25px; border-radius: 15px; margin-bottom: 20px;">
+        <h2 style="color: white; margin: 0;">⚙️ Settings</h2>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Customize your learning experience</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
 
