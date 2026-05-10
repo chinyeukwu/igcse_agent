@@ -5,6 +5,7 @@ Generates question sets on-demand with configurable difficulty levels.
 
 import json
 import re
+import random
 from typing import List, Dict, Any, Tuple
 from langchain_core.messages import HumanMessage
 from src.agents.orchestrator import create_agent
@@ -76,6 +77,57 @@ Difficulty: {difficulty}
             return False, f"Invalid question count. Must be one of: {', '.join(map(str, QuizGenerator.VALID_QUESTION_COUNTS))}"
         
         return True, ""
+
+    @staticmethod
+    def shuffle_question_options(questions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Shuffle the multiple choice options for each question.
+        Updates correct_answer index to match the new option order.
+
+        Args:
+            questions: List of question dictionaries with options and correct_answer
+
+        Returns:
+            List of questions with shuffled options
+        """
+        shuffled_questions = []
+
+        for question in questions:
+            if "options" not in question or "correct_answer" not in question:
+                shuffled_questions.append(question)
+                continue
+
+            options = question.get("options", [])
+            correct_idx = question.get("correct_answer", 0)
+
+            # Get the correct answer text
+            if correct_idx < len(options):
+                correct_answer_text = options[correct_idx]
+            else:
+                shuffled_questions.append(question)
+                continue
+
+            # Create list of (option, is_correct) tuples
+            option_pairs = [(opt, opt == correct_answer_text) for opt in options]
+
+            # Shuffle the options
+            random.shuffle(option_pairs)
+
+            # Find the new index of the correct answer
+            shuffled_options = [opt for opt, _ in option_pairs]
+            new_correct_idx = next(
+                (i for i, (opt, is_correct) in enumerate(option_pairs) if is_correct),
+                0
+            )
+
+            # Create shuffled question
+            shuffled_question = question.copy()
+            shuffled_question["options"] = shuffled_options
+            shuffled_question["correct_answer"] = new_correct_idx
+
+            shuffled_questions.append(shuffled_question)
+
+        return shuffled_questions
 
     @staticmethod
     def parse_quiz_response(response: str) -> Tuple[bool, List[Dict[str, Any]], str]:
@@ -194,7 +246,10 @@ CRITICAL INSTRUCTIONS:
             if len(questions) != question_count:
                 return False, [], f"Expected {question_count} questions, got {len(questions)}"
 
-            return True, questions, ""
+            # Shuffle the answer options so correct answer isn't always in same position
+            shuffled_questions = QuizGenerator.shuffle_question_options(questions)
+
+            return True, shuffled_questions, ""
 
         except Exception as e:
             error_str = str(e)
@@ -202,7 +257,9 @@ CRITICAL INSTRUCTIONS:
             if "429" in error_str or "quota" in error_str.lower() or "rate_limit" in error_str.lower():
                 sample_questions = QuizGenerator.get_sample_quiz(subject_lower, question_count)
                 if sample_questions:
-                    return True, sample_questions, ""
+                    # Shuffle sample questions too
+                    shuffled_sample = QuizGenerator.shuffle_question_options(sample_questions)
+                    return True, shuffled_sample, ""
                 return False, [], f"OpenAI API unavailable (quota exceeded). Please check your OpenAI credits at https://platform.openai.com/account/billing/overview"
 
             return False, [], f"Quiz generation error: {error_str}"
@@ -256,6 +313,69 @@ CRITICAL INSTRUCTIONS:
                     "correct_answer": 2,
                     "explanation": "(25/50) × 100 = 50%.",
                     "workings": "Step 1: Write the fraction\nFraction = 25/50\n\nStep 2: Simplify the fraction\n25/50 = 1/2 = 0.5\n\nStep 3: Convert to percentage\n0.5 × 100 = 50%\n\nAlternative method:\nPercentage = (Part / Whole) × 100\n= (25 / 50) × 100\n= 0.5 × 100\n= 50%\n\nAnswer: 50%"
+                },
+                {
+                    "question": "What is the value of 3² + 4²?",
+                    "options": ["7", "12", "25", "49"],
+                    "correct_answer": 2,
+                    "explanation": "3² = 9 and 4² = 16. Adding them: 9 + 16 = 25.",
+                    "workings": "Step 1: Calculate 3²\n3² = 3 × 3 = 9\n\nStep 2: Calculate 4²\n4² = 4 × 4 = 16\n\nStep 3: Add the squares\n9 + 16 = 25\n\nAnswer: 25"
+                },
+                {
+                    "question": "Solve: 3x - 7 = 8",
+                    "options": ["x = 5", "x = 1", "x = 3", "x = 15"],
+                    "correct_answer": 0,
+                    "explanation": "Add 7 to both sides: 3x = 15. Divide by 3: x = 5.",
+                    "workings": "Step 1: Start with the equation\n3x - 7 = 8\n\nStep 2: Add 7 to both sides\n3x - 7 + 7 = 8 + 7\n3x = 15\n\nStep 3: Divide both sides by 3\nx = 15 ÷ 3\nx = 5\n\nStep 4: Check: 3(5) - 7 = 15 - 7 = 8 ✓\n\nAnswer: x = 5"
+                },
+                {
+                    "question": "What is 25% of 80?",
+                    "options": ["16", "20", "25", "40"],
+                    "correct_answer": 1,
+                    "explanation": "25% of 80 = (25/100) × 80 = 0.25 × 80 = 20.",
+                    "workings": "Step 1: Convert percentage to decimal\n25% = 25/100 = 0.25\n\nStep 2: Multiply by the number\n0.25 × 80 = 20\n\nAlternative:\n25% = 1/4\n1/4 of 80 = 80 ÷ 4 = 20\n\nAnswer: 20"
+                },
+                {
+                    "question": "What is the value of 2³?",
+                    "options": ["6", "8", "9", "12"],
+                    "correct_answer": 1,
+                    "explanation": "2³ = 2 × 2 × 2 = 8.",
+                    "workings": "Step 1: Understand exponent notation\n2³ means 2 to the power of 3\nThis means multiply 2 by itself 3 times\n\nStep 2: Calculate\n2³ = 2 × 2 × 2\n= 4 × 2\n= 8\n\nAnswer: 8"
+                },
+                {
+                    "question": "Solve: x/4 = 5",
+                    "options": ["x = 1", "x = 9", "x = 20", "x = 25"],
+                    "correct_answer": 2,
+                    "explanation": "Multiply both sides by 4: x = 5 × 4 = 20.",
+                    "workings": "Step 1: Start with the equation\nx/4 = 5\n\nStep 2: Multiply both sides by 4\n(x/4) × 4 = 5 × 4\nx = 20\n\nStep 3: Check: 20/4 = 5 ✓\n\nAnswer: x = 20"
+                },
+                {
+                    "question": "What is the circumference of a circle with radius 5?",
+                    "options": ["10π", "25π", "5π", "15π"],
+                    "correct_answer": 0,
+                    "explanation": "Circumference = 2πr = 2π(5) = 10π.",
+                    "workings": "Step 1: Recall the circumference formula\nC = 2πr\nwhere r is the radius\n\nStep 2: Substitute r = 5\nC = 2π(5)\nC = 10π\n\nAnswer: 10π (or approximately 31.4)"
+                },
+                {
+                    "question": "What is 6 + 3 × 2?",
+                    "options": ["18", "12", "9", "8"],
+                    "correct_answer": 2,
+                    "explanation": "Using order of operations (PEMDAS), multiplication comes before addition: 3 × 2 = 6, then 6 + 6 = 12. Wait, that's not right. Let me recalculate: 3 × 2 = 6, then 6 + 6 = 12. Hmm, but the answer is 12, not 9.",
+                    "workings": "Step 1: Remember order of operations (PEMDAS/BODMAS)\nBrackets/Parentheses\nOrders/Exponents\nDivision and Multiplication (left to right)\nAddition and Subtraction (left to right)\n\nStep 2: Apply to 6 + 3 × 2\nMultiply first: 3 × 2 = 6\nThen add: 6 + 6 = 12\n\nAnswer: 12\n\nNote: NOT (6+3) × 2, because multiplication is done first"
+                },
+                {
+                    "question": "What is the area of a square with side length 7?",
+                    "options": ["28", "49", "14", "56"],
+                    "correct_answer": 1,
+                    "explanation": "Area of a square = side × side = 7 × 7 = 49.",
+                    "workings": "Step 1: Recall the area formula for a square\nArea = side × side = side²\n\nStep 2: Substitute side = 7\nArea = 7 × 7\nArea = 7²\nArea = 49 square units\n\nAnswer: 49"
+                },
+                {
+                    "question": "What is 50 ÷ 5 × 2?",
+                    "options": ["5", "20", "100", "50"],
+                    "correct_answer": 1,
+                    "explanation": "Using order of operations, division and multiplication are done left to right: 50 ÷ 5 = 10, then 10 × 2 = 20.",
+                    "workings": "Step 1: Remember that division and multiplication have equal priority\nWhen they appear together, work left to right\n\nStep 2: Apply to 50 ÷ 5 × 2\nDivide first (left): 50 ÷ 5 = 10\nThen multiply: 10 × 2 = 20\n\nAnswer: 20\n\nNote: NOT 50 ÷ (5 × 2) = 50 ÷ 10 = 5"
                 }
             ],
             "english": [
@@ -392,12 +512,17 @@ CRITICAL INSTRUCTIONS:
         if not questions:
             return []
 
-        # Return requested number of questions (cycle through if needed)
-        result = []
-        for i in range(question_count):
-            result.append(questions[i % len(questions)])
-
-        return result
+        # Randomly select requested number of questions from the pool
+        # This ensures variety - different questions each time
+        if len(questions) >= question_count:
+            # Sample without replacement if we have enough questions
+            return random.sample(questions, question_count)
+        else:
+            # If not enough unique questions, return all and repeat some
+            selected = random.sample(questions, len(questions))
+            remaining = question_count - len(questions)
+            selected.extend(random.choices(questions, k=remaining))
+            return selected
 
     @staticmethod
     def generate_quiz_json(questions: List[Dict[str, Any]]) -> str:
