@@ -418,12 +418,14 @@ def show_quiz_page(api_url: str):
         st.markdown("### 📝 Answer Review")
         quiz_data = st.session_state.current_quiz
         questions = quiz_data.get("questions", [])
+        subject = quiz_data.get("subject", "").lower()
 
         for i, q_data in enumerate(questions):
             question_text = q_data.get("question", "")
             options = q_data.get("options", [])
             correct_idx = q_data.get("correct_answer", 0)
             explanation = q_data.get("explanation", "")
+            workings = q_data.get("workings", "")
 
             user_answer = st.session_state.user_answers.get(i, "No answer")
             correct_answer = options[correct_idx] if correct_idx < len(options) else "N/A"
@@ -437,6 +439,12 @@ def show_quiz_page(api_url: str):
 
                 if explanation:
                     st.info(f"**Explanation:** {explanation}")
+
+                # Show workings for Maths only
+                if subject == "maths" and workings:
+                    st.markdown("---")
+                    st.markdown("**📐 Step-by-Step Solution:**")
+                    st.code(workings, language="text")
 
         # Start new quiz button
         if st.button("🆕 Take Another Quiz", key="new_quiz_btn"):

@@ -22,7 +22,9 @@ class QuizGenerator:
     SUBJECT_PROMPTS = {
         "maths": """Generate {count} {difficulty} mathematics quiz questions for IGCSE students.
 Format: Return ONLY a JSON array with exactly {count} questions.
-Each question must have: "question", "options" (array of 4), "correct_answer" (index 0-3), "explanation"
+Each question must have: "question", "options" (array of 4), "correct_answer" (index 0-3), "explanation", "workings"
+- "explanation": Brief explanation of the answer
+- "workings": Step-by-step solution showing all working and calculations
 Difficulty: {difficulty} (easy=basic concepts, medium=multi-step, hard=complex)
 """,
         "english": """Generate {count} {difficulty} English Literature quiz questions for IGCSE students.
@@ -224,31 +226,36 @@ CRITICAL INSTRUCTIONS:
                     "question": "What is 15 × 12?",
                     "options": ["160", "180", "200", "220"],
                     "correct_answer": 1,
-                    "explanation": "15 × 12 = 180. Multiply 15 by 10 to get 150, then by 2 to get 30, then add: 150 + 30 = 180."
+                    "explanation": "15 × 12 = 180. Multiply 15 by 10 to get 150, then by 2 to get 30, then add: 150 + 30 = 180.",
+                    "workings": "Step 1: Break down 15 × 12\n15 × 12 = 15 × (10 + 2)\n\nStep 2: Use distributive property\n= (15 × 10) + (15 × 2)\n= 150 + 30\n\nStep 3: Add the results\n= 180\n\nAnswer: 180"
                 },
                 {
                     "question": "Solve: 2x + 5 = 13",
                     "options": ["x = 2", "x = 4", "x = 6", "x = 8"],
                     "correct_answer": 1,
-                    "explanation": "Subtract 5 from both sides: 2x = 8. Divide by 2: x = 4."
+                    "explanation": "Subtract 5 from both sides: 2x = 8. Divide by 2: x = 4.",
+                    "workings": "Step 1: Start with the equation\n2x + 5 = 13\n\nStep 2: Subtract 5 from both sides\n2x + 5 - 5 = 13 - 5\n2x = 8\n\nStep 3: Divide both sides by 2\n2x ÷ 2 = 8 ÷ 2\nx = 4\n\nStep 4: Check: 2(4) + 5 = 8 + 5 = 13 ✓\n\nAnswer: x = 4"
                 },
                 {
                     "question": "What is the square root of 144?",
                     "options": ["10", "11", "12", "13"],
                     "correct_answer": 2,
-                    "explanation": "12 × 12 = 144, so √144 = 12."
+                    "explanation": "12 × 12 = 144, so √144 = 12.",
+                    "workings": "Step 1: Find the number that multiplies by itself to give 144\n√144 = ?\n\nStep 2: Test values\n10 × 10 = 100 (too small)\n11 × 11 = 121 (too small)\n12 × 12 = 144 ✓\n13 × 13 = 169 (too large)\n\nStep 3: Verify\n12 × 12 = 144\n\nAnswer: √144 = 12"
                 },
                 {
                     "question": "If a triangle has sides 3, 4, and 5, what is its area?",
                     "options": ["6", "12", "15", "20"],
                     "correct_answer": 0,
-                    "explanation": "This is a right triangle. Area = (base × height) / 2 = (3 × 4) / 2 = 6."
+                    "explanation": "This is a right triangle. Area = (base × height) / 2 = (3 × 4) / 2 = 6.",
+                    "workings": "Step 1: Identify the triangle type\nSides are 3, 4, and 5\nSince 3² + 4² = 5² (9 + 16 = 25)\nThis is a right triangle\n\nStep 2: Identify base and height\nFor a right triangle, the two shorter sides are the base and height\nBase = 3\nHeight = 4\n\nStep 3: Apply area formula\nArea = (base × height) / 2\nArea = (3 × 4) / 2\nArea = 12 / 2\nArea = 6 square units\n\nAnswer: 6"
                 },
                 {
                     "question": "What percentage is 25 out of 50?",
                     "options": ["25%", "40%", "50%", "75%"],
                     "correct_answer": 2,
-                    "explanation": "(25/50) × 100 = 50%."
+                    "explanation": "(25/50) × 100 = 50%.",
+                    "workings": "Step 1: Write the fraction\nFraction = 25/50\n\nStep 2: Simplify the fraction\n25/50 = 1/2 = 0.5\n\nStep 3: Convert to percentage\n0.5 × 100 = 50%\n\nAlternative method:\nPercentage = (Part / Whole) × 100\n= (25 / 50) × 100\n= 0.5 × 100\n= 50%\n\nAnswer: 50%"
                 }
             ],
             "english": [
