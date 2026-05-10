@@ -305,7 +305,7 @@ def show_quiz_page(api_url: str):
                 )
 
                 if response.status_code == 200:
-                    st.session_state.current_quiz = response.json().get("data")
+                    st.session_state.current_quiz = response.json()
                     st.session_state.user_answers = {}
                     st.session_state.quiz_submitted = False
                     st.success("✅ Quiz generated!")
@@ -322,16 +322,28 @@ def show_quiz_page(api_url: str):
 
         quiz_data = st.session_state.current_quiz
         questions = quiz_data.get("questions", [])
-        answers = quiz_data.get("answers", [])
 
-        for i, question in enumerate(questions):
-            st.markdown(f"**Q{i+1}: {question}**")
-            st.session_state.user_answers[i] = st.text_input(
-                f"Your answer for Q{i+1}",
-                value=st.session_state.user_answers.get(i, ""),
-                key=f"answer_{i}",
-                label_visibility="collapsed"
-            )
+        for i, q_data in enumerate(questions):
+            question_text = q_data.get("question", "")
+            options = q_data.get("options", [])
+
+            st.markdown(f"**Q{i+1}: {question_text}**")
+
+            if options:
+                st.session_state.user_answers[i] = st.radio(
+                    f"Options for Q{i+1}",
+                    options=options,
+                    index=0 if i not in st.session_state.user_answers else options.index(st.session_state.user_answers.get(i, options[0])) if st.session_state.user_answers.get(i) in options else 0,
+                    key=f"answer_{i}",
+                    label_visibility="collapsed"
+                )
+            else:
+                st.session_state.user_answers[i] = st.text_input(
+                    f"Your answer for Q{i+1}",
+                    value=st.session_state.user_answers.get(i, ""),
+                    key=f"answer_{i}",
+                    label_visibility="collapsed"
+                )
 
         # Submit quiz button
         col1, col2 = st.columns([1, 3])
@@ -339,7 +351,16 @@ def show_quiz_page(api_url: str):
             if st.button("✅ Submit Quiz", key="submit_quiz_btn"):
                 with st.spinner("⏳ Submitting..."):
                     try:
-                        user_answers_list = [st.session_state.user_answers.get(i, "") for i in range(len(questions))]
+                        # Convert user answers (option text) to indices
+                        user_answers_indices = []
+                        for i, q_data in enumerate(questions):
+                            user_answer = st.session_state.user_answers.get(i, "")
+                            options = q_data.get("options", [])
+                            if user_answer in options:
+                                user_answers_indices.append(options.index(user_answer))
+                            else:
+                                user_answers_indices.append(-1)  # Not answered
+
                         response = requests.post(
                             f"{api_url}/quiz/submit",
                             json={
@@ -347,14 +368,14 @@ def show_quiz_page(api_url: str):
                                 "difficulty": quiz_data.get("difficulty", ""),
                                 "topic": quiz_data.get("topic", "IGCSE Practice"),
                                 "questions": questions,
-                                "user_answers": user_answers_list
+                                "user_answers": user_answers_indices
                             },
                             headers=headers,
                             timeout=30
                         )
 
                         if response.status_code == 200:
-                            result = response.json().get("data", {})
+                            result = response.json()
                             st.session_state.quiz_score = result.get("score", 0)
                             st.session_state.quiz_submitted = True
                             st.rerun()
@@ -395,12 +416,25 @@ def show_quiz_page(api_url: str):
         st.markdown("### 📝 Answer Review")
         quiz_data = st.session_state.current_quiz
         questions = quiz_data.get("questions", [])
-        answers = quiz_data.get("answers", [])
 
-        for i, question in enumerate(questions):
-            with st.expander(f"Q{i+1}: {question}"):
-                st.markdown(f"**Your answer:** {st.session_state.user_answers.get(i, 'No answer')}")
-                st.markdown(f"**Correct answer:** {answers[i] if i < len(answers) else 'N/A'}")
+        for i, q_data in enumerate(questions):
+            question_text = q_data.get("question", "")
+            options = q_data.get("options", [])
+            correct_idx = q_data.get("correct_answer", 0)
+            explanation = q_data.get("explanation", "")
+
+            user_answer = st.session_state.user_answers.get(i, "No answer")
+            correct_answer = options[correct_idx] if correct_idx < len(options) else "N/A"
+
+            with st.expander(f"Q{i+1}: {question_text}"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"**Your answer:** {user_answer}")
+                with col2:
+                    st.markdown(f"**Correct answer:** {correct_answer}")
+
+                if explanation:
+                    st.info(f"**Explanation:** {explanation}")
 
         # Start new quiz button
         if st.button("🆕 Take Another Quiz", key="new_quiz_btn"):
