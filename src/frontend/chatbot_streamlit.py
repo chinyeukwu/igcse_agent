@@ -279,12 +279,11 @@ def show_quiz_page(api_url: str):
             key="quiz_difficulty"
         )
     with col3:
-        question_count = st.slider(
+        question_count = st.selectbox(
             "❓ Questions",
-            min_value=3,
-            max_value=10,
-            value=5,
-            key="quiz_questions"
+            [3, 5, 10],
+            key="quiz_questions",
+            index=1  # Default to 5
         )
 
     token = st.session_state.get("auth_token")
@@ -340,11 +339,15 @@ def show_quiz_page(api_url: str):
             if st.button("✅ Submit Quiz", key="submit_quiz_btn"):
                 with st.spinner("⏳ Submitting..."):
                     try:
+                        user_answers_list = [st.session_state.user_answers.get(i, "") for i in range(len(questions))]
                         response = requests.post(
                             f"{api_url}/quiz/submit",
                             json={
-                                "quiz_id": quiz_data.get("id"),
-                                "answers": [st.session_state.user_answers.get(i, "") for i in range(len(questions))]
+                                "subject": quiz_data.get("subject", ""),
+                                "difficulty": quiz_data.get("difficulty", ""),
+                                "topic": quiz_data.get("topic", "IGCSE Practice"),
+                                "questions": questions,
+                                "user_answers": user_answers_list
                             },
                             headers=headers,
                             timeout=30

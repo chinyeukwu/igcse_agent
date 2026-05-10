@@ -39,9 +39,6 @@ require_password_complexity = os.getenv("REQUIRE_PASSWORD_COMPLEXITY", "true").l
 default_data_path = os.path.join(BASE_DIR, "src/data", "premier-league-matches.csv")
 file_path = os.getenv("DATA_FILE_PATH", default_data_path)
 
-# ===== External Services =====
-football_website = os.getenv("FOOTBALL_WEBSITE", "https://www.premierleague.com/")
-
 # ===== Feature Flags =====
 # Offline mode support
 enable_offline_mode = os.getenv("ENABLE_OFFLINE_MODE", "true").lower() == "true"

@@ -1,0 +1,30 @@
+[project]
+name = "agenticaitutor"
+version = "0.1.0"
+description = "An AI Tutor app that uses Agentic AI to decide which tool to call"
+authors = [
+    {name = "Chinye Ukwu",email = "chinyeukwu@yahoo.co.uk"}
+]
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "fastapi (>=0.115.14,<0.116.0)",
+    "langchain (>=0.3.26,<0.4.0)",
+    "matplotlib (>=3.10.3,<4.0.0)",
+    "langchain_openai (>=0.3.26,<0.4.0)",
+    "pandas (>=2.1.3,<3.0.0)",
+    "langgraph (>=0.5.0,<0.6.0)",
+    "uvicorn (>=0.23.2,<0.24.0)",
+    "requests (>=2.32.4,<3.0.0)",
+    "streamlit (>=1.46.1,<2.0.0)"
+]
+
+[tool.poetry]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+flake8 = "^7.3.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
