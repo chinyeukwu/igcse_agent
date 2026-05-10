@@ -130,7 +130,8 @@ def show_login_form(api_url: str) -> None:
             if not username or not password:
                 st.error("❌ Please enter both username and password")
             else:
-                success, message, token, user_data = login_user(api_url, username, password)
+                with st.spinner("🔐 Logging in... Please wait"):
+                    success, message, token, user_data = login_user(api_url, username, password)
 
                 if success:
                     set_auth_session(token, user_data)
@@ -206,13 +207,14 @@ def show_signup_form(api_url: str) -> None:
             elif len(password) < 8:
                 st.error("❌ Password must be at least 8 characters")
             else:
-                success, message = register_user(
-                    api_url,
-                    username=username,
-                    email=email,
-                    password=password,
-                    full_name=full_name,
-                )
+                with st.spinner("✨ Creating your account... Please wait"):
+                    success, message = register_user(
+                        api_url,
+                        username=username,
+                        email=email,
+                        password=password,
+                        full_name=full_name,
+                    )
 
                 if success:
                     st.success("✅ Account created successfully! Please log in.")

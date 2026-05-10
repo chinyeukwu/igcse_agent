@@ -5,7 +5,9 @@
       "Bash(Select-Object -First 20)",
       "Bash(git init *)",
       "Bash(Remove-Item \"C:\\\\projects\\\\agenticaitutor\\\\data\\\\igcse_tutor.db\" -ErrorAction SilentlyContinue)",
-      "Bash(PYTHONIOENCODING=utf-8 python test_phase1.py)"
+      "Bash(PYTHONIOENCODING=utf-8 python test_phase1.py)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
