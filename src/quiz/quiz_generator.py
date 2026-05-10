@@ -22,30 +22,81 @@ class QuizGenerator:
     # Quiz prompts per subject
     SUBJECT_PROMPTS = {
         "maths": """Generate {count} {difficulty} mathematics quiz questions for IGCSE students.
-Format: Return ONLY a JSON array with exactly {count} questions.
-Each question must have: "question", "options" (array of 4), "correct_answer" (index 0-3), "explanation", "workings"
-- "explanation": Brief explanation of the answer
-- "workings": Step-by-step solution showing all working and calculations
+
+CRITICAL: Return ONLY valid JSON. No markdown, no code blocks, no extra text.
+
+Format: JSON array with exactly {count} questions.
+Each question must have these exact fields:
+- "question": The question text
+- "options": Array of exactly 4 answer strings
+- "correct_answer": Integer index (0, 1, 2, or 3) of correct option
+- "explanation": Brief explanation of the correct answer
+- "workings": Step-by-step solution with calculations
+
+Example format:
+[{{"question": "...", "options": ["...", "...", "...", "..."], "correct_answer": 0, "explanation": "...", "workings": "..."}}]
+
 Difficulty: {difficulty} (easy=basic concepts, medium=multi-step, hard=complex)
 """,
         "english": """Generate {count} {difficulty} English Literature quiz questions for IGCSE students.
-Format: Return ONLY a JSON array with exactly {count} questions about texts, themes, and comprehension.
-Each question must have: "question", "options" (array of 4), "correct_answer" (index 0-3), "explanation"
+
+CRITICAL: Return ONLY valid JSON. No markdown, no code blocks, no extra text.
+
+Format: JSON array with exactly {count} questions.
+Each question must have these exact fields:
+- "question": The question text
+- "options": Array of exactly 4 answer strings
+- "correct_answer": Integer index (0, 1, 2, or 3) of correct option
+- "explanation": Brief explanation of the correct answer
+
+Example format:
+[{{"question": "...", "options": ["...", "...", "...", "..."], "correct_answer": 0, "explanation": "..."}}]
+
 Difficulty: {difficulty}
 """,
         "french": """Generate {count} {difficulty} French language quiz questions for IGCSE students.
-Format: Return ONLY a JSON array with exactly {count} questions (mix of grammar, vocabulary, comprehension).
-Each question must have: "question", "options" (array of 4), "correct_answer" (index 0-3), "explanation"
-Questions can be in French or English. Difficulty: {difficulty}
+
+CRITICAL: Return ONLY valid JSON. No markdown, no code blocks, no extra text.
+
+Format: JSON array with exactly {count} questions.
+Each question must have these exact fields:
+- "question": The question text
+- "options": Array of exactly 4 answer strings
+- "correct_answer": Integer index (0, 1, 2, or 3) of correct option
+- "explanation": Brief explanation of the correct answer
+
+Difficulty: {difficulty}
 """,
         "science": """Generate {count} {difficulty} Science quiz questions for IGCSE students (Physics, Chemistry, Biology).
-Format: Return ONLY a JSON array with exactly {count} questions covering core concepts.
-Each question must have: "question", "options" (array of 4), "correct_answer" (index 0-3), "explanation"
+
+CRITICAL: Return ONLY valid JSON. No markdown, no code blocks, no extra text.
+
+Format: JSON array with exactly {count} questions covering core concepts.
+Each question must have these exact fields:
+- "question": The question text
+- "options": Array of exactly 4 answer strings
+- "correct_answer": Integer index (0, 1, 2, or 3) of correct option
+- "explanation": Brief explanation of the correct answer
+
+Example format:
+[{{"question": "...", "options": ["...", "...", "...", "..."], "correct_answer": 0, "explanation": "..."}}]
+
 Difficulty: {difficulty}
 """,
         "finearts": """Generate {count} {difficulty} Fine Arts quiz questions for IGCSE students.
-Format: Return ONLY a JSON array with exactly {count} questions about techniques, history, and analysis.
-Each question must have: "question", "options" (array of 4), "correct_answer" (index 0-3), "explanation"
+
+CRITICAL: Return ONLY valid JSON. No markdown, no code blocks, no extra text.
+
+Format: JSON array with exactly {count} questions about techniques, history, and analysis.
+Each question must have these exact fields:
+- "question": The question text
+- "options": Array of exactly 4 answer strings
+- "correct_answer": Integer index (0, 1, 2, or 3) of correct option
+- "explanation": Brief explanation of the correct answer
+
+Example format:
+[{{"question": "...", "options": ["...", "...", "...", "..."], "correct_answer": 0, "explanation": "..."}}]
+
 Difficulty: {difficulty}
 """,
     }
@@ -133,22 +184,56 @@ Difficulty: {difficulty}
     def parse_quiz_response(response: str) -> Tuple[bool, List[Dict[str, Any]], str]:
         """
         Parse LLM response into quiz questions.
-        
+        Handles various response formats including markdown code blocks.
+
         Args:
             response: Raw LLM response
-        
+
         Returns:
             Tuple of (success, questions_list, error_message)
         """
         try:
-            # Try to extract JSON from response
-            json_match = re.search(r'\[.*\]', response, re.DOTALL)
-            
-            if not json_match:
-                return False, [], "Could not extract JSON from response"
-            
-            json_str = json_match.group(0)
-            questions = json.loads(json_str)
+            # Remove markdown code blocks if present
+            cleaned_response = response
+            if "```json" in cleaned_response:
+                # Extract content between ```json and ```
+                match = re.search(r'```json\s*(.*?)\s*```', cleaned_response, re.DOTALL)
+                if match:
+                    cleaned_response = match.group(1)
+            elif "```" in cleaned_response:
+                # Extract content between ``` and ```
+                match = re.search(r'```\s*(.*?)\s*```', cleaned_response, re.DOTALL)
+                if match:
+                    cleaned_response = match.group(1)
+
+            # Try to extract JSON array from response
+            # Find the opening [ and matching closing ]
+            start_idx = cleaned_response.find('[')
+            if start_idx == -1:
+                return False, [], "Could not find JSON array start in response"
+
+            # Find the closing bracket, accounting for nested structures
+            bracket_count = 0
+            end_idx = -1
+            for i in range(start_idx, len(cleaned_response)):
+                if cleaned_response[i] == '[':
+                    bracket_count += 1
+                elif cleaned_response[i] == ']':
+                    bracket_count -= 1
+                    if bracket_count == 0:
+                        end_idx = i + 1
+                        break
+
+            if end_idx == -1:
+                return False, [], "Could not find JSON array end in response"
+
+            json_str = cleaned_response[start_idx:end_idx].strip()
+
+            # Parse JSON
+            try:
+                questions = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                return False, [], f"Failed to parse JSON: {str(e)}"
             
             # Validate questions structure
             if not isinstance(questions, list) or len(questions) == 0:
