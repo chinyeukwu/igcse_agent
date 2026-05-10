@@ -184,7 +184,8 @@ Difficulty: {difficulty}
         subject: str,
         difficulty: str = "medium",
         question_count: int = 5,
-        language_code: str = "en"
+        language_code: str = "en",
+        exclude_questions: set = None
     ) -> Tuple[bool, List[Dict[str, Any]], str]:
         """
         Generate a fresh quiz with specified parameters.
@@ -195,10 +196,13 @@ Difficulty: {difficulty}
             difficulty: Difficulty level (easy|medium|hard)
             question_count: Number of questions (3, 5, or 10)
             language_code: Language code (default: en)
+            exclude_questions: Set of question texts to exclude (prevent repetition)
 
         Returns:
             Tuple of (success, questions, error_message)
         """
+        if exclude_questions is None:
+            exclude_questions = set()
         try:
             # Validate configuration
             is_valid, error_msg = QuizGenerator.validate_config(subject, difficulty, question_count)
@@ -255,7 +259,7 @@ CRITICAL INSTRUCTIONS:
             error_str = str(e)
             # If API quota/rate limit error, use sample questions as fallback
             if "429" in error_str or "quota" in error_str.lower() or "rate_limit" in error_str.lower():
-                sample_questions = QuizGenerator.get_sample_quiz(subject_lower, question_count)
+                sample_questions = QuizGenerator.get_sample_quiz(subject_lower, question_count, exclude_questions)
                 if sample_questions:
                     # Shuffle sample questions too
                     shuffled_sample = QuizGenerator.shuffle_question_options(sample_questions)
@@ -265,7 +269,7 @@ CRITICAL INSTRUCTIONS:
             return False, [], f"Quiz generation error: {error_str}"
 
     @staticmethod
-    def get_sample_quiz(subject: str, question_count: int) -> List[Dict[str, Any]]:
+    def get_sample_quiz(subject: str, question_count: int, exclude_questions: set = None) -> List[Dict[str, Any]]:
         """
         Return sample quiz questions as fallback when API is unavailable.
         Useful for testing when OpenAI quota is exceeded.
@@ -273,10 +277,13 @@ CRITICAL INSTRUCTIONS:
         Args:
             subject: Subject name (maths, english, french, science, finearts)
             question_count: Number of questions (3, 5, or 10)
+            exclude_questions: Set of question texts to exclude (already used)
 
         Returns:
             List of sample quiz questions
         """
+        if exclude_questions is None:
+            exclude_questions = set()
         sample_quizzes = {
             "maths": [
                 {
@@ -512,16 +519,23 @@ CRITICAL INSTRUCTIONS:
         if not questions:
             return []
 
+        # Filter out already used questions
+        available_questions = [q for q in questions if q.get("question") not in exclude_questions]
+
+        # If we've used all questions, reset and start fresh
+        if not available_questions:
+            available_questions = questions
+
         # Randomly select requested number of questions from the pool
         # This ensures variety - different questions each time
-        if len(questions) >= question_count:
+        if len(available_questions) >= question_count:
             # Sample without replacement if we have enough questions
-            return random.sample(questions, question_count)
+            return random.sample(available_questions, question_count)
         else:
             # If not enough unique questions, return all and repeat some
-            selected = random.sample(questions, len(questions))
-            remaining = question_count - len(questions)
-            selected.extend(random.choices(questions, k=remaining))
+            selected = random.sample(available_questions, len(available_questions))
+            remaining = question_count - len(available_questions)
+            selected.extend(random.choices(available_questions, k=remaining))
             return selected
 
     @staticmethod

@@ -80,6 +80,7 @@ class QuizGenerateInput(BaseModel):
     difficulty: str = "medium"
     question_count: int = 5
     topic: Optional[str] = "IGCSE Practice"
+    exclude_questions: Optional[list] = None  # List of question texts to exclude
 
     @field_validator("subject")
     def validate_subject(cls, v):
@@ -881,11 +882,13 @@ async def generate_quiz(
         )
         
         # Generate quiz
+        exclude_set = set(quiz_input.exclude_questions) if quiz_input.exclude_questions else set()
         success, questions, error_msg = QuizGenerator.generate_quiz(
             subject=quiz_input.subject,
             difficulty=quiz_input.difficulty,
             question_count=quiz_input.question_count,
-            language_code="en"
+            language_code="en",
+            exclude_questions=exclude_set
         )
         
         if not success:

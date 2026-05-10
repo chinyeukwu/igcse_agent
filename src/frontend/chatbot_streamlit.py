@@ -44,6 +44,15 @@ if "last_failed_query" not in st.session_state:
     st.session_state.last_failed_query = None
 if "retry_count" not in st.session_state:
     st.session_state.retry_count = 0
+if "used_questions" not in st.session_state:
+    # Track questions by subject to prevent repetition across quizzes
+    st.session_state.used_questions = {
+        "maths": set(),
+        "english": set(),
+        "french": set(),
+        "science": set(),
+        "finearts": set()
+    }
 
 
 # ===== Main Application =====
@@ -177,6 +186,17 @@ def show_chat_interface():
             st.session_state.chat_session_id = str(uuid.uuid4())
             st.session_state.chat_history = []
             st.rerun()
+
+        # Reset quiz questions button
+        if st.button("🔄 Reset Quiz Pool", key="reset_questions_btn", use_container_width=True, help="Clear used questions to see them again"):
+            st.session_state.used_questions = {
+                "maths": set(),
+                "english": set(),
+                "french": set(),
+                "science": set(),
+                "finearts": set()
+            }
+            st.success("✅ Quiz pool reset! You can now see all questions again.")
 
         st.markdown("---")
 
@@ -397,19 +417,34 @@ def show_quiz_page(api_url: str):
     if st.button("🚀 Generate Quiz", key="generate_quiz_btn"):
         with st.spinner("⏳ Generating quiz..."):
             try:
+                subject_key = subject.lower()
+                # Get list of previously used questions for this subject
+                used_questions = list(st.session_state.used_questions.get(subject_key, set()))
+
                 response = requests.post(
                     f"{api_url}/quiz/generate",
                     json={
-                        "subject": subject.lower(),
+                        "subject": subject_key,
                         "difficulty": difficulty.lower(),
-                        "question_count": question_count
+                        "question_count": question_count,
+                        "exclude_questions": used_questions  # Pass previously used questions
                     },
                     headers=headers,
                     timeout=30
                 )
 
                 if response.status_code == 200:
-                    st.session_state.current_quiz = response.json()
+                    quiz_data = response.json()
+
+                    # Track questions to prevent repetition in future quizzes
+                    subject_key = subject.lower()
+                    questions = quiz_data.get("questions", [])
+                    for q in questions:
+                        question_text = q.get("question", "")
+                        if question_text:
+                            st.session_state.used_questions[subject_key].add(question_text)
+
+                    st.session_state.current_quiz = quiz_data
                     st.session_state.user_answers = {}
                     st.session_state.quiz_submitted = False
                     st.success("✅ Quiz generated!")
