@@ -134,13 +134,14 @@ Difficulty: {difficulty}
     ) -> Tuple[bool, List[Dict[str, Any]], str]:
         """
         Generate a fresh quiz with specified parameters.
-        
+        Falls back to sample quizzes if API is unavailable.
+
         Args:
             subject: IGCSE subject (maths|english|french|science|finearts)
             difficulty: Difficulty level (easy|medium|hard)
             question_count: Number of questions (3, 5, or 10)
             language_code: Language code (default: en)
-        
+
         Returns:
             Tuple of (success, questions, error_message)
         """
@@ -149,19 +150,19 @@ Difficulty: {difficulty}
             is_valid, error_msg = QuizGenerator.validate_config(subject, difficulty, question_count)
             if not is_valid:
                 return False, [], error_msg
-            
+
             # Get subject prompt
             subject_lower = subject.lower()
             if subject_lower not in QuizGenerator.SUBJECT_PROMPTS:
                 return False, [], f"No prompt defined for subject: {subject}"
-            
+
             # Create quiz generation prompt
             base_prompt = QuizGenerator.SUBJECT_PROMPTS[subject_lower]
             final_prompt = base_prompt.format(
                 count=question_count,
                 difficulty=difficulty.lower()
             )
-            
+
             # Add strict instructions
             final_prompt += """
 CRITICAL INSTRUCTIONS:
@@ -172,29 +173,224 @@ CRITICAL INSTRUCTIONS:
 5. explanation field is a string explaining the correct answer
 6. No duplicate questions
 """.format(count=question_count)
-            
+
             # Generate quiz using agent
             message = HumanMessage(content=final_prompt, role="user")
             agent = create_agent()
             initial_state = {"messages": [message]}
             output = agent.invoke(initial_state)
-            
+
             response = output["messages"][-1].content
-            
+
             # Parse response
             success, questions, error = QuizGenerator.parse_quiz_response(response)
-            
+
             if not success:
                 return False, [], error
-            
+
             # Verify question count
             if len(questions) != question_count:
                 return False, [], f"Expected {question_count} questions, got {len(questions)}"
-            
+
             return True, questions, ""
-        
+
         except Exception as e:
-            return False, [], f"Quiz generation error: {str(e)}"
+            error_str = str(e)
+            # If API quota/rate limit error, use sample questions as fallback
+            if "429" in error_str or "quota" in error_str.lower() or "rate_limit" in error_str.lower():
+                sample_questions = QuizGenerator.get_sample_quiz(subject_lower, question_count)
+                if sample_questions:
+                    return True, sample_questions, ""
+                return False, [], f"OpenAI API unavailable (quota exceeded). Please check your OpenAI credits at https://platform.openai.com/account/billing/overview"
+
+            return False, [], f"Quiz generation error: {error_str}"
+
+    @staticmethod
+    def get_sample_quiz(subject: str, question_count: int) -> List[Dict[str, Any]]:
+        """
+        Return sample quiz questions as fallback when API is unavailable.
+        Useful for testing when OpenAI quota is exceeded.
+
+        Args:
+            subject: Subject name (maths, english, french, science, finearts)
+            question_count: Number of questions (3, 5, or 10)
+
+        Returns:
+            List of sample quiz questions
+        """
+        sample_quizzes = {
+            "maths": [
+                {
+                    "question": "What is 15 × 12?",
+                    "options": ["160", "180", "200", "220"],
+                    "correct_answer": 1,
+                    "explanation": "15 × 12 = 180. Multiply 15 by 10 to get 150, then by 2 to get 30, then add: 150 + 30 = 180."
+                },
+                {
+                    "question": "Solve: 2x + 5 = 13",
+                    "options": ["x = 2", "x = 4", "x = 6", "x = 8"],
+                    "correct_answer": 1,
+                    "explanation": "Subtract 5 from both sides: 2x = 8. Divide by 2: x = 4."
+                },
+                {
+                    "question": "What is the square root of 144?",
+                    "options": ["10", "11", "12", "13"],
+                    "correct_answer": 2,
+                    "explanation": "12 × 12 = 144, so √144 = 12."
+                },
+                {
+                    "question": "If a triangle has sides 3, 4, and 5, what is its area?",
+                    "options": ["6", "12", "15", "20"],
+                    "correct_answer": 0,
+                    "explanation": "This is a right triangle. Area = (base × height) / 2 = (3 × 4) / 2 = 6."
+                },
+                {
+                    "question": "What percentage is 25 out of 50?",
+                    "options": ["25%", "40%", "50%", "75%"],
+                    "correct_answer": 2,
+                    "explanation": "(25/50) × 100 = 50%."
+                }
+            ],
+            "english": [
+                {
+                    "question": "What is a metaphor?",
+                    "options": ["A comparison using 'like' or 'as'", "A direct comparison without using 'like' or 'as'", "Repetition of sounds", "Giving human qualities to non-human things"],
+                    "correct_answer": 1,
+                    "explanation": "A metaphor is a direct comparison. A simile uses 'like' or 'as'."
+                },
+                {
+                    "question": "In 'Romeo and Juliet', what is the main conflict?",
+                    "options": ["Two lovers from rival families", "A war between kingdoms", "A love triangle", "A curse on a family"],
+                    "correct_answer": 0,
+                    "explanation": "The central conflict is the forbidden love between Romeo and Juliet, whose families are feuding."
+                },
+                {
+                    "question": "What does 'irony' mean?",
+                    "options": ["Exaggeration", "Expressing something opposite to what is meant", "Repetition", "Silence"],
+                    "correct_answer": 1,
+                    "explanation": "Irony is when the opposite of what is expected occurs, or when someone says the opposite of what they mean."
+                },
+                {
+                    "question": "Which literary device is this: 'The moon smiled down at the sleeping earth'?",
+                    "options": ["Metaphor", "Personification", "Alliteration", "Simile"],
+                    "correct_answer": 1,
+                    "explanation": "Personification gives human qualities (smiling) to non-human things (the moon)."
+                },
+                {
+                    "question": "What is the theme of a story?",
+                    "options": ["The plot", "The main idea or message", "The setting", "The dialogue"],
+                    "correct_answer": 1,
+                    "explanation": "Theme is the underlying message or life lesson in a story."
+                }
+            ],
+            "science": [
+                {
+                    "question": "What is photosynthesis?",
+                    "options": ["Breaking down food for energy", "Converting sunlight into chemical energy", "Exchanging gases in the lungs", "Movement of water in plants"],
+                    "correct_answer": 1,
+                    "explanation": "Photosynthesis is the process where plants use sunlight to create glucose (sugar) from CO₂ and water."
+                },
+                {
+                    "question": "What are the three states of matter?",
+                    "options": ["Hot, cold, warm", "Solid, liquid, gas", "Element, compound, mixture", "Atom, molecule, ion"],
+                    "correct_answer": 1,
+                    "explanation": "The three states of matter are solid (fixed shape), liquid (takes shape of container), and gas (no fixed shape)."
+                },
+                {
+                    "question": "Which organelle is the powerhouse of the cell?",
+                    "options": ["Nucleus", "Chloroplast", "Mitochondria", "Ribosome"],
+                    "correct_answer": 2,
+                    "explanation": "Mitochondria are called the powerhouse because they produce ATP (energy) through cellular respiration."
+                },
+                {
+                    "question": "What is the pH of a neutral solution?",
+                    "options": ["0", "7", "14", "5"],
+                    "correct_answer": 1,
+                    "explanation": "pH 7 is neutral. Below 7 is acidic, above 7 is basic/alkaline."
+                },
+                {
+                    "question": "What is the speed of light?",
+                    "options": ["300,000 m/s", "150,000 m/s", "500,000 m/s", "1,000,000 m/s"],
+                    "correct_answer": 0,
+                    "explanation": "The speed of light is approximately 3 × 10⁸ m/s or 300,000 km/s."
+                }
+            ],
+            "french": [
+                {
+                    "question": "Comment ça va?",
+                    "options": ["How old are you?", "What is your name?", "How are you?", "Where are you from?"],
+                    "correct_answer": 2,
+                    "explanation": "'Comment ça va?' means 'How are you?' in French."
+                },
+                {
+                    "question": "What does 'Je m'appelle' mean?",
+                    "options": ["I like", "My name is", "I live", "I study"],
+                    "correct_answer": 1,
+                    "explanation": "'Je m'appelle' literally means 'I call myself', which is how you introduce your name in French."
+                },
+                {
+                    "question": "Which is the correct plural of 'le chat'?",
+                    "options": ["le chats", "les chats", "la chats", "chats"],
+                    "correct_answer": 1,
+                    "explanation": "The plural article is 'les' (for both masculine and feminine). So 'les chats' (the cats)."
+                },
+                {
+                    "question": "What does 'au revoir' mean?",
+                    "options": ["Good morning", "Goodbye", "Thank you", "Please"],
+                    "correct_answer": 1,
+                    "explanation": "'Au revoir' means 'goodbye' or literally 'until we see each other again'."
+                },
+                {
+                    "question": "How do you say 'I eat an apple' in French?",
+                    "options": ["Je mangez une pomme", "Je manger une pomme", "Je mange une pomme", "Je manges une pomme"],
+                    "correct_answer": 2,
+                    "explanation": "The correct conjugation of 'manger' (to eat) with 'je' is 'je mange'."
+                }
+            ],
+            "finearts": [
+                {
+                    "question": "What is the primary color that is NOT a primary color in light?",
+                    "options": ["Red", "Blue", "Yellow", "Green"],
+                    "correct_answer": 2,
+                    "explanation": "In light (RGB), the primary colors are Red, Green, and Blue. In pigment (RYB), they are Red, Yellow, and Blue."
+                },
+                {
+                    "question": "What art movement is Pablo Picasso famous for?",
+                    "options": ["Impressionism", "Cubism", "Surrealism", "Romanticism"],
+                    "correct_answer": 1,
+                    "explanation": "Picasso is one of the founders of Cubism, which broke down objects into geometric shapes."
+                },
+                {
+                    "question": "What is perspective in art?",
+                    "options": ["The artist's opinion", "Technique for creating depth and dimension", "Color harmony", "The subject matter"],
+                    "correct_answer": 1,
+                    "explanation": "Perspective is a technique that creates the illusion of depth on a 2D surface using lines and proportion."
+                },
+                {
+                    "question": "Which color theory explains complementary colors?",
+                    "options": ["Color harmony", "Color wheel", "Color psychology", "Color contrast"],
+                    "correct_answer": 1,
+                    "explanation": "The color wheel shows complementary colors (colors opposite each other) that create maximum contrast."
+                },
+                {
+                    "question": "What is the golden ratio in art?",
+                    "options": ["1:2", "1:1.618", "1:3", "2:1"],
+                    "correct_answer": 1,
+                    "explanation": "The golden ratio (approximately 1:1.618) is a proportion considered aesthetically pleasing and found in nature."
+                }
+            ]
+        }
+
+        questions = sample_quizzes.get(subject.lower(), [])
+        if not questions:
+            return []
+
+        # Return requested number of questions (cycle through if needed)
+        result = []
+        for i in range(question_count):
+            result.append(questions[i % len(questions)])
+
+        return result
 
     @staticmethod
     def generate_quiz_json(questions: List[Dict[str, Any]]) -> str:
