@@ -883,6 +883,9 @@ async def generate_quiz(
         
         # Generate quiz
         exclude_set = set(quiz_input.exclude_questions) if quiz_input.exclude_questions else set()
+        logger.info(
+            f"Generating quiz with {len(exclude_set)} excluded questions for subject: {quiz_input.subject}"
+        )
         success, questions, error_msg = QuizGenerator.generate_quiz(
             subject=quiz_input.subject,
             difficulty=quiz_input.difficulty,
@@ -890,6 +893,11 @@ async def generate_quiz(
             language_code="en",
             exclude_questions=exclude_set
         )
+
+        # Log generated question titles
+        if success:
+            question_titles = [q.get("question", "")[:50] + "..." for q in questions]
+            logger.info(f"Generated {len(questions)} questions: {question_titles}")
         
         if not success:
             logger.warning(f"Quiz generation failed: {error_msg}")

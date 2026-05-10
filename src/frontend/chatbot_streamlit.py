@@ -198,6 +198,19 @@ def show_chat_interface():
             }
             st.success("✅ Quiz pool reset! You can now see all questions again.")
 
+        # Debug info - show tracked questions count
+        with st.expander("📊 Debug: Questions Tracked", expanded=False):
+            st.caption("Questions you've already seen (per subject):")
+            for subject, questions_set in st.session_state.used_questions.items():
+                count = len(questions_set)
+                if count > 0:
+                    st.write(f"**{subject.title()}**: {count} questions")
+                    with st.expander(f"View {subject} questions"):
+                        for q in list(questions_set)[:10]:  # Show first 10
+                            st.caption(f"• {q[:80]}...")
+                else:
+                    st.write(f"**{subject.title()}**: 0 questions")
+
         st.markdown("---")
 
         # Status indicator
