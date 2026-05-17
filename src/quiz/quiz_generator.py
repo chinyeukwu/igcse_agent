@@ -1,23 +1,60 @@
 """
 Quiz generator for creating fresh IGCSE quizzes using AI.
 Generates question sets on-demand with configurable difficulty levels.
+Uses Anthropic Claude API with prompt caching for improved performance and cost efficiency.
 """
 
 import json
 import re
 import random
+import logging
+import os
 from typing import List, Dict, Any, Tuple
-from langchain_core.messages import HumanMessage
-from src.agents.orchestrator import create_agent
+from anthropic import Anthropic
+
+logger = logging.getLogger(__name__)
 
 
 class QuizGenerator:
-    """Generates fresh IGCSE quizzes on-demand using LLM."""
+    """Generates fresh IGCSE quizzes on-demand using LLM with prompt caching."""
 
     # Valid configurations
     VALID_SUBJECTS = ["maths", "english", "french", "science", "finearts"]
     VALID_DIFFICULTIES = ["easy", "medium", "hard"]
     VALID_QUESTION_COUNTS = [3, 5, 10]
+
+    # Initialize Claude client
+    _client = None
+    _edexcel_examples = None
+
+    @classmethod
+    def get_client(cls):
+        """Lazy-load Anthropic client."""
+        if cls._client is None:
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if not api_key:
+                raise ValueError("ANTHROPIC_API_KEY environment variable not set")
+            cls._client = Anthropic(api_key=api_key)
+        return cls._client
+
+    @classmethod
+    def load_edexcel_examples(cls) -> Dict[str, Dict[str, List[Dict]]]:
+        """Load cached Edexcel exam examples."""
+        if cls._edexcel_examples is None:
+            examples_path = os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "assets",
+                "edexcel_examples.json"
+            )
+            try:
+                with open(examples_path, 'r') as f:
+                    cls._edexcel_examples = json.load(f)
+                logger.info(f"Loaded Edexcel examples from {examples_path}")
+            except Exception as e:
+                logger.warning(f"Could not load Edexcel examples: {str(e)}")
+                cls._edexcel_examples = {}
+        return cls._edexcel_examples
 
     # Quiz prompts per subject
     SUBJECT_PROMPTS = {
@@ -264,8 +301,9 @@ Difficulty: {difficulty}
         except Exception as e:
             return False, [], f"Error parsing response: {str(e)}"
 
-    @staticmethod
+    @classmethod
     def generate_quiz(
+        cls,
         subject: str,
         difficulty: str = "medium",
         question_count: int = 5,
@@ -273,7 +311,7 @@ Difficulty: {difficulty}
         exclude_questions: set = None
     ) -> Tuple[bool, List[Dict[str, Any]], str]:
         """
-        Generate a fresh quiz with specified parameters.
+        Generate a fresh quiz with specified parameters using Claude API with prompt caching.
         Falls back to sample quizzes if API is unavailable.
 
         Args:
@@ -288,45 +326,79 @@ Difficulty: {difficulty}
         """
         if exclude_questions is None:
             exclude_questions = set()
+
+        subject_lower = subject.lower()
+
         try:
             # Validate configuration
-            is_valid, error_msg = QuizGenerator.validate_config(subject, difficulty, question_count)
+            is_valid, error_msg = cls.validate_config(subject, difficulty, question_count)
             if not is_valid:
                 return False, [], error_msg
 
-            # Get subject prompt
-            subject_lower = subject.lower()
-            if subject_lower not in QuizGenerator.SUBJECT_PROMPTS:
+            if subject_lower not in cls.SUBJECT_PROMPTS:
                 return False, [], f"No prompt defined for subject: {subject}"
 
-            # Create quiz generation prompt
-            base_prompt = QuizGenerator.SUBJECT_PROMPTS[subject_lower]
-            final_prompt = base_prompt.format(
+            # Load Edexcel examples for cached system prompt
+            examples = cls.load_edexcel_examples()
+            edexcel_examples_text = cls._build_edexcel_examples_prompt(subject_lower, examples)
+
+            # Build system prompt with Edexcel examples (for caching)
+            system_prompt = f"""You are an expert IGCSE quiz generator specializing in Edexcel exam patterns.
+Your role is to generate high-quality quiz questions that closely match Edexcel IGCSE exam standards.
+
+{edexcel_examples_text}
+
+## Guidelines for {subject.title()} Questions
+- Match Edexcel's difficulty progression and question styles
+- Use command words appropriate for {difficulty.title()} difficulty
+- Ensure all options are plausible but clearly distinguishable
+- Provide clear, concise explanations for answers
+- For Maths: Always include step-by-step workings
+- For English: Emphasize textual analysis and critical thinking
+- Avoid trick questions; test genuine understanding"""
+
+            # Build user prompt (dynamic, not cached)
+            user_prompt = cls.SUBJECT_PROMPTS[subject_lower].format(
                 count=question_count,
                 difficulty=difficulty.lower()
             )
 
-            # Add strict instructions
-            final_prompt += """
-CRITICAL INSTRUCTIONS:
-1. Return ONLY valid JSON array - no markdown, no code blocks, no extra text
-2. Ensure exactly {count} questions in the array
-3. Each question has exactly 4 options
-4. correct_answer is a number: 0, 1, 2, or 3
-5. explanation field is a string explaining the correct answer
-6. No duplicate questions
-""".format(count=question_count)
+            # Add exclusion guidance if needed
+            if exclude_questions:
+                exclude_list = "\n".join(f"- {q[:50]}..." for q in list(exclude_questions)[:5])
+                user_prompt += f"\n\nPLEASE AVOID these previously used questions:\n{exclude_list}\n\nGenerate completely fresh and different questions."
 
-            # Generate quiz using agent
-            message = HumanMessage(content=final_prompt, role="user")
-            agent = create_agent()
-            initial_state = {"messages": [message]}
-            output = agent.invoke(initial_state)
+            # Call Claude API with prompt caching
+            client = cls.get_client()
+            response = client.messages.create(
+                model="claude-4-7",
+                max_tokens=2000,
+                system=[
+                    {
+                        "type": "text",
+                        "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"}  # Cache system + examples
+                    }
+                ],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_prompt  # Dynamic - not cached
+                    }
+                ]
+            )
 
-            response = output["messages"][-1].content
+            response_text = response.content[0].text
+
+            # Log cache usage
+            usage = response.usage
+            if hasattr(usage, 'cache_creation_input_tokens'):
+                logger.info(f"Cache stats - Created: {usage.cache_creation_input_tokens}, "
+                           f"Read: {usage.cache_read_input_tokens}, "
+                           f"Regular: {usage.input_tokens}")
 
             # Parse response
-            success, questions, error = QuizGenerator.parse_quiz_response(response)
+            success, questions, error = cls.parse_quiz_response(response_text)
 
             if not success:
                 return False, [], error
@@ -335,23 +407,45 @@ CRITICAL INSTRUCTIONS:
             if len(questions) != question_count:
                 return False, [], f"Expected {question_count} questions, got {len(questions)}"
 
-            # Shuffle the answer options so correct answer isn't always in same position
-            shuffled_questions = QuizGenerator.shuffle_question_options(questions)
+            # Shuffle the answer options
+            shuffled_questions = cls.shuffle_question_options(questions)
 
             return True, shuffled_questions, ""
 
         except Exception as e:
             error_str = str(e)
-            # If API quota/rate limit error, use sample questions as fallback
-            if "429" in error_str or "quota" in error_str.lower() or "rate_limit" in error_str.lower():
-                sample_questions = QuizGenerator.get_sample_quiz(subject_lower, question_count, exclude_questions)
+            logger.error(f"Quiz generation error: {error_str}")
+
+            # If API error, use sample questions as fallback
+            if any(x in error_str.lower() for x in ["429", "quota", "rate_limit", "insufficient_quota"]):
+                logger.info(f"API unavailable, falling back to sample questions for {subject_lower}")
+                sample_questions = cls.get_sample_quiz(subject_lower, question_count, exclude_questions)
                 if sample_questions:
-                    # Shuffle sample questions too
-                    shuffled_sample = QuizGenerator.shuffle_question_options(sample_questions)
+                    shuffled_sample = cls.shuffle_question_options(sample_questions)
                     return True, shuffled_sample, ""
-                return False, [], f"OpenAI API unavailable (quota exceeded). Please check your OpenAI credits at https://platform.openai.com/account/billing/overview"
+                return False, [], "Anthropic API unavailable and no sample questions available"
 
             return False, [], f"Quiz generation error: {error_str}"
+
+    @staticmethod
+    def _build_edexcel_examples_prompt(subject: str, examples: Dict) -> str:
+        """Build cached Edexcel examples section for system prompt."""
+        if subject not in examples:
+            return ""
+
+        subject_examples = examples[subject]
+        examples_text = f"\n## Edexcel {subject.title()} Question Examples\n\n"
+
+        for difficulty in ["easy", "medium", "hard"]:
+            if difficulty in subject_examples:
+                examples_text += f"### {difficulty.title()} Level Example:\n"
+                ex = subject_examples[difficulty][0] if subject_examples[difficulty] else {}
+                examples_text += f"**Q:** {ex.get('question', '')}\n"
+                examples_text += f"**Options:** {', '.join(ex.get('options', []))}\n"
+                examples_text += f"**Answer:** {ex.get('correct_answer', '')}\n"
+                examples_text += f"**Explanation:** {ex.get('explanation', '')}\n\n"
+
+        return examples_text
 
     @staticmethod
     def get_sample_quiz(subject: str, question_count: int, exclude_questions: set = None) -> List[Dict[str, Any]]:

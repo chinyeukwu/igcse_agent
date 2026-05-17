@@ -9,6 +9,7 @@ from pathlib import Path
 
 # ===== API Configuration =====
 openai_key = os.getenv("OPENAI_API_KEY")
+anthropic_key = os.getenv("ANTHROPIC_API_KEY")
 fastapi_url = os.getenv("FASTAPI_URL", "http://localhost:8000")
 fastapi_host = os.getenv("FASTAPI_HOST", "0.0.0.0")
 fastapi_port = int(os.getenv("FASTAPI_PORT", 8000))

@@ -1,0 +1,144 @@
+{
+  "maths": {
+    "easy": [
+      {
+        "question": "Solve the equation: 3x + 5 = 20",
+        "options": ["x = 5", "x = 8.33", "x = 10", "x = 15"],
+        "correct_answer": 0,
+        "explanation": "Subtract 5 from both sides: 3x = 15. Divide by 3: x = 5",
+        "workings": "3x + 5 = 20\n3x = 20 - 5\n3x = 15\nx = 15 ÷ 3\nx = 5"
+      },
+      {
+        "question": "What is 15% of 80?",
+        "options": ["10", "12", "15", "20"],
+        "correct_answer": 1,
+        "explanation": "15% = 15/100. 15/100 × 80 = 12",
+        "workings": "15% of 80\n= (15 ÷ 100) × 80\n= 0.15 × 80\n= 12"
+      },
+      {
+        "question": "A triangle has angles of 45°, 65°, and x°. Find x.",
+        "options": ["60°", "70°", "80°", "90°"],
+        "correct_answer": 2,
+        "explanation": "Sum of angles in a triangle = 180°. 45 + 65 + x = 180, so x = 70°",
+        "workings": "Sum of angles = 180°\n45° + 65° + x = 180°\n110° + x = 180°\nx = 180° - 110°\nx = 70°"
+      }
+    ],
+    "medium": [
+      {
+        "question": "A rectangle has length 2x + 3 and width x. If the perimeter is 54 cm, find x.",
+        "options": ["6", "7", "8", "9"],
+        "correct_answer": 2,
+        "explanation": "Perimeter = 2(length + width) = 2(2x + 3 + x) = 2(3x + 3) = 6x + 6. Setting equal to 54: 6x + 6 = 54, so x = 8",
+        "workings": "Perimeter = 2(length + width)\n54 = 2(2x + 3 + x)\n54 = 2(3x + 3)\n54 = 6x + 6\n48 = 6x\nx = 8"
+      },
+      {
+        "question": "Solve: 2x² - 5x - 3 = 0",
+        "options": ["x = 3 or x = -0.5", "x = -3 or x = 0.5", "x = 2 or x = 1.5", "x = -2 or x = -1.5"],
+        "correct_answer": 0,
+        "explanation": "Using the quadratic formula or factoring: (2x + 1)(x - 3) = 0, giving x = 3 or x = -0.5",
+        "workings": "2x² - 5x - 3 = 0\n(2x + 1)(x - 3) = 0\n2x + 1 = 0 or x - 3 = 0\nx = -0.5 or x = 3"
+      },
+      {
+        "question": "A shop increases the price of an item by 20%. The new price is £48. What was the original price?",
+        "options": ["£40", "£38.40", "£57.60", "£60"],
+        "correct_answer": 0,
+        "explanation": "If increased by 20%, new price = 120% of original. So 1.2 × original = 48, original = 48 ÷ 1.2 = £40",
+        "workings": "New price = 120% of original\n48 = 1.2 × original\noriginal = 48 ÷ 1.2\noriginal = £40"
+      }
+    ],
+    "hard": [
+      {
+        "question": "The sum of three consecutive odd numbers is 75. Find the largest number.",
+        "options": ["23", "25", "27", "29"],
+        "correct_answer": 2,
+        "explanation": "Let the three consecutive odd numbers be x, x+2, x+4. Then x + (x+2) + (x+4) = 75, so 3x + 6 = 75, thus x = 23. The largest is 23 + 4 = 27",
+        "workings": "Let the odd numbers be: x, x+2, x+4\nx + (x+2) + (x+4) = 75\n3x + 6 = 75\n3x = 69\nx = 23\nLargest = 23 + 4 = 27"
+      },
+      {
+        "question": "A cylinder has radius 5 cm and height 10 cm. Calculate its volume (use π ≈ 3.14).",
+        "options": ["157 cm³", "314 cm³", "785 cm³", "1570 cm³"],
+        "correct_answer": 2,
+        "explanation": "Volume of cylinder = πr²h = 3.14 × 5² × 10 = 3.14 × 25 × 10 = 785 cm³",
+        "workings": "V = πr²h\nV = 3.14 × 5² × 10\nV = 3.14 × 25 × 10\nV = 78.5 × 10\nV = 785 cm³"
+      },
+      {
+        "question": "If f(x) = 3x - 2 and g(x) = x², find f(g(4)).",
+        "options": ["46", "42", "50", "38"],
+        "correct_answer": 0,
+        "explanation": "First calculate g(4) = 4² = 16. Then f(16) = 3(16) - 2 = 48 - 2 = 46",
+        "workings": "g(4) = 4² = 16\nf(g(4)) = f(16)\nf(16) = 3(16) - 2\nf(16) = 48 - 2\nf(16) = 46"
+      }
+    ]
+  },
+  "english": {
+    "easy": [
+      {
+        "question": "In the sentence 'The cat sat on the mat', which word is the subject?",
+        "options": ["sat", "The", "cat", "mat"],
+        "correct_answer": 2,
+        "explanation": "The subject is the noun or noun phrase that performs the action. Here, 'the cat' is the subject, with 'cat' being the main noun.",
+        "workings": "Subject = who/what is doing the action\n'The cat sat on the mat'\nThe cat = subject\nsat = verb (action)"
+      },
+      {
+        "question": "What is the main purpose of a metaphor?",
+        "options": ["To make something longer", "To describe something by comparing it to something else without using 'like' or 'as'", "To confuse the reader", "To make text rhyme"],
+        "correct_answer": 1,
+        "explanation": "A metaphor is a figure of speech that describes something by comparing it directly to something else, without using comparison words like 'like' or 'as'. For example, 'Time is money'.",
+        "workings": "Metaphor = direct comparison without 'like' or 'as'\nExample: 'He was a lion in battle' (not 'like a lion')\nPurpose = to create vivid imagery and show similarities"
+      },
+      {
+        "question": "Which of these is a complete sentence?",
+        "options": ["Running through the park", "The dog runs quickly", "Because it was raining", "After the movie ended"],
+        "correct_answer": 1,
+        "explanation": "A complete sentence needs a subject and verb. 'The dog runs quickly' has both: subject='the dog', verb='runs'. The others are fragments.",
+        "workings": "Complete sentence = subject + verb + complete thought\n'The dog runs quickly'\nSubject = the dog\nVerb = runs\nComplete thought = yes"
+      }
+    ],
+    "medium": [
+      {
+        "question": "Read this extract: 'The old house stood silently on the hill, its windows like empty eyes watching the valley below.' What technique is used in 'windows like empty eyes'?",
+        "options": ["Alliteration", "Personification", "Simile", "Metaphor"],
+        "correct_answer": 2,
+        "explanation": "A simile is a comparison between two things using 'like' or 'as'. Here, windows are compared to empty eyes using 'like', making it a simile.",
+        "workings": "Technique analysis:\n'windows like empty eyes' = comparison using 'like'\nSimile = comparison with 'like' or 'as'\nNot metaphor (no 'like' or 'as')\nNot personification (windows aren't given human qualities)"
+      },
+      {
+        "question": "Why might an author use short sentences in a tense moment of a story?",
+        "options": ["To bore the reader", "To create a sense of urgency and increase pace", "To make the writing easier", "To show the author is tired"],
+        "correct_answer": 1,
+        "explanation": "Short sentences create a rapid pace, making the reader feel rushed and tense, which reflects the emotional intensity of the scene.",
+        "workings": "Effect of short sentences:\nIncreases pace\nCreates urgency\nMakes reader feel tension\nExample: 'He ran. He hid. He waited.'\nVs long sentences = slow, reflective tone"
+      },
+      {
+        "question": "In a formal essay, which of these is most appropriate?",
+        "options": ["You gotta understand that stuff", "It is important to understand key concepts", "I think maybe the idea is good", "Literally everyone knows this"],
+        "correct_answer": 1,
+        "explanation": "Formal writing avoids contractions (gotta), first person (I think), vague language (maybe), and colloquial expressions (literally). 'It is important to understand' is clear, objective, and formal.",
+        "workings": "Formal essay requires:\nNo contractions\nNo 'I' or personal opinion\nClear, objective language\nProfessional tone\n'It is important to understand key concepts' ✓"
+      }
+    ],
+    "hard": [
+      {
+        "question": "How does the author use the phrase 'the dying of the light' to convey meaning in this context?",
+        "options": ["It literally describes the sun setting", "It is a metaphor for decline, loss, or resistance against despair", "It explains why it is dark outside", "It is only decorative language"],
+        "correct_answer": 1,
+        "explanation": "In poetry, 'the dying of the light' is a metaphor that represents loss of life, hope, or vitality. The phrase suggests a struggle against darkness or mortality, creating deeper emotional resonance than a literal description.",
+        "workings": "Metaphor analysis:\n'dying of the light' = not literal sunset\nRepresents: decline, loss, end of life\nEmotional impact: conveys struggle, despair, resistance\nExample use: 'Do not go gentle into that good night'\nAuthor's intent: create profound meaning beyond surface description"
+      },
+      {
+        "question": "Analyze how the writer's use of first-person narrative affects the reader's understanding of the protagonist.",
+        "options": ["First person is always confusing and should be avoided", "First person allows readers direct access to the protagonist's thoughts, creating intimacy and bias", "First person has no effect on reader understanding", "First person is only for autobiographies"],
+        "correct_answer": 1,
+        "explanation": "First-person narration creates an intimate relationship between reader and character, but also introduces bias since we only see events through one character's perspective and emotional filter. This limited viewpoint shapes how readers interpret events.",
+        "workings": "First-person narrative effects:\nAdvantages: intimacy, psychological insight, engaging voice\nDisadvantages: limited viewpoint, unreliable narrator possibility\nReader impact: sees story through character's bias\nExample: Unreliable narrator reveals truth slowly"
+      },
+      {
+        "question": "Which statement best explains how symbolism functions in literature?",
+        "options": ["Symbols are just pretty words authors use", "Symbols allow authors to represent abstract ideas through concrete objects, actions, or characters", "Symbols make text harder to understand", "Symbols have the same meaning in every story"],
+        "correct_answer": 1,
+        "explanation": "Symbolism enables authors to express complex, abstract ideas (hope, death, transformation) through concrete representations (a dove, a mirror, a journey). This technique adds layers of meaning and allows readers to engage with deeper themes.",
+        "workings": "Symbolism function:\nConcrete object = abstract idea\nExample: white dove = peace/innocence\nBridge = journey/transition\nDark forest = danger/uncertainty\nEffect: adds meaning, depth, universal resonance"
+      }
+    ]
+  }
+}
