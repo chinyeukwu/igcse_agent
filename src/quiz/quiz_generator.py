@@ -371,7 +371,7 @@ Your role is to generate high-quality quiz questions that closely match Edexcel 
             # Call Claude API with prompt caching
             client = cls.get_client()
             response = client.messages.create(
-                model="claude-4-7",
+                model="claude-opus-4-7",
                 max_tokens=2000,
                 system=[
                     {
