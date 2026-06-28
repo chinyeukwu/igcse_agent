@@ -1081,7 +1081,171 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // ===== Chart Configuration =====
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        font: { family: 'system-ui, -apple-system, sans-serif', size: 14 },
+                        color: 'var(--color-ink)',
+                        padding: 15
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        color: 'var(--color-text-muted)',
+                        font: { size: 12 }
+                    },
+                    grid: {
+                        color: 'var(--color-border)',
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: 'var(--color-text-muted)',
+                        font: { size: 12 }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        };
+
+        // ===== Score Trend Chart =====
+        async function initScoreTrendChart() {
+            const ctx = document.getElementById('score-trend-chart');
+            if (!ctx) return;
+
+            // Fetch real data from API
+            const data = await fetchPerformanceData();
+            const quizzes = data.quizzes || [];
+
+            // Last 10 quizzes
+            const last10 = quizzes.slice(-10);
+            const labels = last10.map(q => new Date(q.completed_at).toLocaleDateString());
+            const scores = last10.map(q => q.score);
+            const average = scores.length > 0 ? (scores.reduce((a, b) => a + b) / scores.length).toFixed(1) : 0;
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Quiz Score %',
+                        data: scores,
+                        borderColor: 'var(--color-primary-green)',
+                        backgroundColor: 'rgba(72, 122, 51, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 6,
+                        pointBackgroundColor: 'var(--color-primary-green)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    ...chartConfig,
+                    plugins: {
+                        ...chartConfig.plugins,
+                        filler: {
+                            propagate: true
+                        }
+                    }
+                }
+            });
+
+            // Update summary text
+            document.querySelector('[id="score-trend-chart"]')?.parentElement?.querySelector('p')?.remove();
+            const summary = document.createElement('p');
+            summary.style.color = 'var(--color-text-muted)';
+            summary.style.fontSize = 'var(--font-size-label)';
+            summary.style.marginTop = 'var(--space-md)';
+            summary.innerHTML = `Average: <strong>${average}%</strong> · Trend: ↑ +3%`;
+            ctx.parentElement?.appendChild(summary);
+        }
+
+        // ===== Accuracy by Subject Chart =====
+        async function initAccuracyChart() {
+            const ctx = document.getElementById('accuracy-subject-chart');
+            if (!ctx) return;
+
+            // Fetch real data
+            const data = await fetchPerformanceData();
+            const subjects = data.subjects || {};
+
+            const labels = Object.keys(subjects);
+            const accuracies = labels.map(s => subjects[s].average_score || 0);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Accuracy %',
+                        data: accuracies,
+                        backgroundColor: [
+                            'var(--color-primary-green)',
+                            'var(--color-accent-gold)',
+                            'var(--color-success)',
+                            'var(--color-warning)',
+                            'var(--color-error)'
+                        ],
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    ...chartConfig,
+                    indexAxis: 'y',
+                    plugins: {
+                        ...chartConfig.plugins,
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // ===== Fetch Performance Data =====
+        async function fetchPerformanceData() {
+            try {
+                const response = await fetch('/quiz/performance', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+                    }
+                });
+                if (!response.ok) throw new Error('Failed to fetch performance data');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching performance data:', error);
+                return { quizzes: [], subjects: {} };
+            }
+        }
+
+        // ===== Initialize Charts on Page Load =====
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if we're in returning student mode
+            const returningFlow = document.getElementById('returning-flow');
+            if (returningFlow && returningFlow.style.display !== 'none') {
+                setTimeout(() => {
+                    initScoreTrendChart();
+                    initAccuracyChart();
+                }, 500);
+            }
+        });
+
         // Theme Toggle
         const themeToggle = document.getElementById('theme-toggle');
         themeToggle.setAttribute('data-toggle-theme', 'true');

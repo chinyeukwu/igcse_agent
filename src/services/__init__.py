@@ -11,6 +11,12 @@ from src.services.spaced_repetition_service import (
     SpacedRepetitionService
 )
 from src.services.practice_plan_service import PracticePlanService
+from src.services.notification_service import (
+    NotificationService,
+    EmailNotificationService,
+    SMSNotificationService,
+    NotificationPreferences
+)
 
 __all__ = [
     "QuizScoringService",
@@ -20,4 +26,8 @@ __all__ = [
     "TopicPerformanceService",
     "SpacedRepetitionService",
     "PracticePlanService",
+    "NotificationService",
+    "EmailNotificationService",
+    "SMSNotificationService",
+    "NotificationPreferences",
 ]

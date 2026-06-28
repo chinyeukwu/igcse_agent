@@ -34,9 +34,11 @@ from src.services import (
     EssayEvaluationService,
     TopicPerformanceService,
     SpacedRepetitionService,
-    PracticePlanService
+    PracticePlanService,
+    NotificationService,
+    NotificationPreferences
 )
-from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyProfile
+from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyProfile, User
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -177,6 +179,23 @@ class AdminDataExportInput(BaseModel):
     """Admin data export request model."""
     user_id: int
     format: str = "json"  # json or csv
+
+
+class NotificationPreferenceInput(BaseModel):
+    """Notification preference update model."""
+    email_enabled: Optional[bool] = None
+    sms_enabled: Optional[bool] = None
+    email_frequency: Optional[str] = None
+    sms_frequency: Optional[str] = None
+    quiet_hours_start: Optional[str] = None
+    quiet_hours_end: Optional[str] = None
+
+
+class SendNotificationInput(BaseModel):
+    """Send notification request model."""
+    user_id: int
+    subject: str = "Maths"
+    notification_type: str = "email"
 
 
 # ===== Dependency Injection =====
@@ -2458,6 +2477,268 @@ async def export_user_data(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to export user data",
+        )
+
+
+@app.post("/notifications/send", status_code=status.HTTP_200_OK)
+async def send_notification(
+    notification_input: SendNotificationInput,
+    current_user: object = Depends(get_current_user),
+):
+    """
+    Send notification to user about due topics.
+
+    Args:
+        notification_input: Notification request details
+        current_user: Current authenticated user
+
+    Returns:
+        Notification status
+    """
+    try:
+        db_session = get_session()
+        from src.services.notification_service import NotificationService
+
+        # Verify user can only send to themselves (unless admin)
+        is_admin = getattr(current_user, "is_admin", False)
+        if not is_admin and current_user.id != notification_input.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot send notifications to other users",
+            )
+
+        # Initialize notification service
+        notification_service = NotificationService(
+            smtp_host=os.getenv("SMTP_HOST"),
+            smtp_port=int(os.getenv("SMTP_PORT", 587)),
+            sender_email=os.getenv("SENDER_EMAIL"),
+            sender_password=os.getenv("SENDER_PASSWORD"),
+            twilio_account_sid=os.getenv("TWILIO_ACCOUNT_SID"),
+            twilio_auth_token=os.getenv("TWILIO_AUTH_TOKEN"),
+            twilio_phone_number=os.getenv("TWILIO_PHONE_NUMBER"),
+        )
+
+        # Get user details
+        user = db_session.query(User).filter(User.id == notification_input.user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        # Send notification
+        results = notification_service.send_due_topics_notification(
+            db_session,
+            user_id=notification_input.user_id,
+            recipient_email=user.email,
+            phone_number=getattr(user, "phone_number", None),
+            student_name=user.username,
+            subject=notification_input.subject,
+        )
+
+        logger.info(f"Notification sent to user {notification_input.user_id}: {results}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": results.get("email") or results.get("sms"),
+                "email_sent": results.get("email", False),
+                "sms_sent": results.get("sms", False),
+                "due_topics_count": results.get("due_topics_count", 0),
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Send notification error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send notification",
+        )
+
+
+@app.get("/notifications/preferences", status_code=status.HTTP_200_OK)
+async def get_notification_preferences(
+    current_user: object = Depends(get_current_user),
+):
+    """
+    Get user's notification preferences.
+
+    Args:
+        current_user: Current authenticated user
+
+    Returns:
+        Notification preferences
+    """
+    try:
+        db_session = get_session()
+        from src.services.notification_service import NotificationPreferences
+
+        preferences = NotificationPreferences.get_preferences(db_session, current_user.id)
+
+        logger.info(f"Retrieved notification preferences for user {current_user.id}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=preferences,
+        )
+
+    except Exception as e:
+        logger.error(f"Get preferences error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve preferences",
+        )
+
+
+@app.post("/notifications/preferences", status_code=status.HTTP_200_OK)
+async def update_notification_preferences(
+    preference_input: NotificationPreferenceInput,
+    current_user: object = Depends(get_current_user),
+):
+    """
+    Update user's notification preferences.
+
+    Args:
+        preference_input: Updated preferences
+        current_user: Current authenticated user
+
+    Returns:
+        Update status
+    """
+    try:
+        db_session = get_session()
+        from src.services.notification_service import NotificationPreferences
+
+        # Build preferences dict (only update provided values)
+        preferences = {
+            k: v for k, v in preference_input.dict().items()
+            if v is not None
+        }
+
+        success = NotificationPreferences.update_preferences(
+            db_session,
+            current_user.id,
+            preferences
+        )
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update preferences",
+            )
+
+        logger.info(f"Updated preferences for user {current_user.id}: {preferences}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "message": "Preferences updated successfully",
+                "updated_fields": list(preferences.keys()),
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update preferences error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update preferences",
+        )
+
+
+@app.post("/notifications/weekly-summary", status_code=status.HTTP_200_OK)
+async def send_weekly_summary(
+    current_user: object = Depends(get_current_user),
+):
+    """
+    Send weekly performance summary email to user.
+
+    Args:
+        current_user: Current authenticated user
+
+    Returns:
+        Email send status
+    """
+    try:
+        db_session = get_session()
+        from src.services.notification_service import NotificationService
+        from src.services.spaced_repetition_service import TopicPerformanceService
+
+        # Initialize notification service
+        notification_service = NotificationService(
+            smtp_host=os.getenv("SMTP_HOST"),
+            smtp_port=int(os.getenv("SMTP_PORT", 587)),
+            sender_email=os.getenv("SENDER_EMAIL"),
+            sender_password=os.getenv("SENDER_PASSWORD"),
+        )
+
+        # Get user details
+        user = db_session.query(User).filter(User.id == current_user.id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        # Get performance data
+        quizzes = db_session.query(QuizAttempt).filter(
+            QuizAttempt.user_id == current_user.id
+        ).order_by(QuizAttempt.completed_at.desc()).limit(10).all()
+
+        # Aggregate by subject
+        subjects = {}
+        for quiz in quizzes:
+            subject = quiz.subject
+            if subject not in subjects:
+                subjects[subject] = {
+                    "average_score": 0,
+                    "quizzes_completed": 0,
+                    "scores": []
+                }
+            subjects[subject]["scores"].append(quiz.score_percentage)
+            subjects[subject]["quizzes_completed"] += 1
+
+        # Calculate averages
+        for subject in subjects:
+            subjects[subject]["average_score"] = sum(subjects[subject]["scores"]) / len(subjects[subject]["scores"])
+
+        overall_accuracy = sum(s["average_score"] for s in subjects.values()) / len(subjects) if subjects else 0
+
+        performance_data = {
+            "subjects": subjects,
+            "overall_accuracy": overall_accuracy,
+            "total_time_minutes": sum(q.time_taken_seconds for q in quizzes) // 60 if quizzes else 0,
+        }
+
+        # Send email
+        success = notification_service.send_performance_summary(
+            user.email,
+            user.username,
+            performance_data
+        )
+
+        logger.info(f"Weekly summary sent to user {current_user.id}: {success}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": success,
+                "message": "Weekly summary email sent" if success else "Failed to send email",
+                "summary": performance_data,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Send weekly summary error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send weekly summary",
         )
 
 
