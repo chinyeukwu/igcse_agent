@@ -27,7 +27,15 @@ from src.security import InputValidator, ResponseValidator, AuditLogger
 from src.offline import CacheManager, SyncManager, StatusDetector
 from src.quiz import QuizGenerator, QuizService
 from src.admin import AdminService
-from src.services import QuizScoringService, DifficultyCalibrationService, QuizAttemptService
+from src.services import (
+    QuizScoringService,
+    DifficultyCalibrationService,
+    QuizAttemptService,
+    EssayEvaluationService,
+    TopicPerformanceService,
+    SpacedRepetitionService,
+    PracticePlanService
+)
 from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyProfile
 
 # Configure logging
@@ -140,6 +148,17 @@ class QuizAttemptCompleteInput(BaseModel):
     """Complete a quiz attempt."""
     quiz_attempt_id: int
     total_time_seconds: Optional[int] = None
+
+
+class EssayEvaluationInput(BaseModel):
+    """Evaluate an essay-type answer."""
+    student_essay: str
+    question_text: str
+    model_answer: str
+    marking_scheme: str
+    marks_total: int = 10
+    subject: str = "English"
+    difficulty: str = "medium"
 
 
 class AdminUserActionInput(BaseModel):
@@ -1529,6 +1548,335 @@ async def get_recommended_difficulty(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get recommended difficulty"
+        )
+
+
+# ===== Essay Evaluation Endpoints =====
+
+@app.post("/quiz/evaluate-essay", status_code=status.HTTP_200_OK)
+async def evaluate_essay_answer(
+    evaluation_input: EssayEvaluationInput,
+    current_user = Depends(get_current_user),
+):
+    """
+    Evaluate an essay-type answer using Claude AI.
+    Provides detailed feedback and scoring.
+    Requires authentication.
+
+    Args:
+        evaluation_input: Essay and marking scheme details
+        current_user: Authenticated user
+
+    Returns:
+        Score, feedback, and detailed rubric analysis
+    """
+    try:
+        score, feedback, rubric = EssayEvaluationService.evaluate_essay(
+            student_essay=evaluation_input.student_essay,
+            question_text=evaluation_input.question_text,
+            model_answer=evaluation_input.model_answer,
+            marking_scheme=evaluation_input.marking_scheme,
+            marks_total=evaluation_input.marks_total,
+            subject=evaluation_input.subject,
+            difficulty=evaluation_input.difficulty
+        )
+
+        logger.info(f"Essay evaluated for {current_user.username}: {score}/{evaluation_input.marks_total}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "score": score,
+                "marks_total": evaluation_input.marks_total,
+                "percentage": round((score / evaluation_input.marks_total * 100), 1),
+                "feedback": feedback,
+                "rubric": rubric,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Essay evaluation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to evaluate essay"
+        )
+
+
+# ===== Practice Plan Endpoints =====
+
+@app.get("/quiz/practice-plan", status_code=status.HTTP_200_OK)
+async def get_practice_plan(
+    subject: str,
+    weeks_ahead: int = 4,
+    current_user = Depends(get_current_user),
+):
+    """
+    Get personalized practice plan based on performance.
+    Requires authentication.
+
+    Args:
+        subject: Subject (Maths, English, etc.)
+        weeks_ahead: Number of weeks to plan for
+        current_user: Authenticated user
+
+    Returns:
+        Comprehensive practice plan with priorities and resources
+    """
+    try:
+        db_session = get_session()
+
+        plan = PracticePlanService.generate_practice_plan(
+            db_session,
+            current_user.id,
+            subject,
+            weeks_ahead
+        )
+
+        logger.info(f"Practice plan generated for {current_user.username} in {subject}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=plan
+        )
+
+    except Exception as e:
+        logger.error(f"Practice plan error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate practice plan"
+        )
+
+
+@app.get("/quiz/immediate-actions", status_code=status.HTTP_200_OK)
+async def get_immediate_actions(
+    subject: str,
+    current_user = Depends(get_current_user),
+):
+    """
+    Get immediate action items for today/this week.
+    Prioritized by urgency and weak areas.
+    Requires authentication.
+
+    Args:
+        subject: Subject
+        current_user: Authenticated user
+
+    Returns:
+        List of prioritized immediate actions
+    """
+    try:
+        db_session = get_session()
+
+        actions = PracticePlanService.get_immediate_actions(
+            db_session,
+            current_user.id,
+            subject
+        )
+
+        logger.info(f"Immediate actions retrieved for {current_user.username}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "subject": subject,
+                "actions": actions,
+                "total_actions": len(actions),
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Immediate actions error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve actions"
+        )
+
+
+# ===== Spaced Repetition Endpoints =====
+
+@app.get("/quiz/topics-due-for-review", status_code=status.HTTP_200_OK)
+async def get_topics_due_for_review(
+    subject: str,
+    current_user = Depends(get_current_user),
+):
+    """
+    Get topics that are due for review using spaced repetition algorithm.
+    Requires authentication.
+
+    Args:
+        subject: Subject
+        current_user: Authenticated user
+
+    Returns:
+        List of topics sorted by urgency
+    """
+    try:
+        db_session = get_session()
+
+        topics = SpacedRepetitionService.get_topics_due_for_review(
+            db_session,
+            current_user.id,
+            subject
+        )
+
+        logger.info(f"Topics due for review retrieved for {current_user.username}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "subject": subject,
+                "topics_due": topics,
+                "total_due": len(topics),
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Topics due for review error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve topics"
+        )
+
+
+@app.get("/quiz/study-schedule", status_code=status.HTTP_200_OK)
+async def get_study_schedule(
+    subject: str,
+    days_ahead: int = 7,
+    current_user = Depends(get_current_user),
+):
+    """
+    Get recommended study schedule for next N days.
+    Requires authentication.
+
+    Args:
+        subject: Subject
+        days_ahead: Days to plan for
+        current_user: Authenticated user
+
+    Returns:
+        Daily study schedule with recommended topics
+    """
+    try:
+        db_session = get_session()
+
+        schedule = SpacedRepetitionService.get_study_schedule(
+            db_session,
+            current_user.id,
+            subject,
+            days_ahead
+        )
+
+        logger.info(f"Study schedule retrieved for {current_user.username}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "subject": subject,
+                "days_ahead": days_ahead,
+                "schedule": schedule,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Study schedule error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve schedule"
+        )
+
+
+@app.get("/quiz/topic-performance", status_code=status.HTTP_200_OK)
+async def get_topic_performance(
+    subject: str,
+    current_user = Depends(get_current_user),
+):
+    """
+    Get detailed performance breakdown by topic.
+    Requires authentication.
+
+    Args:
+        subject: Subject
+        current_user: Authenticated user
+
+    Returns:
+        Performance metrics for each topic
+    """
+    try:
+        db_session = get_session()
+
+        performance = TopicPerformanceService.get_topic_performance(
+            db_session,
+            current_user.id,
+            subject
+        )
+
+        logger.info(f"Topic performance retrieved for {current_user.username}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "subject": subject,
+                "topics": performance,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Topic performance error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve topic performance"
+        )
+
+
+@app.get("/quiz/time-to-proficiency", status_code=status.HTTP_200_OK)
+async def get_time_to_proficiency(
+    subject: str,
+    topic: str,
+    current_accuracy: float,
+    target_accuracy: float = 85.0,
+    hours_per_week: float = 5.0,
+    current_user = Depends(get_current_user),
+):
+    """
+    Estimate time needed to reach target proficiency.
+    Requires authentication.
+
+    Args:
+        subject: Subject
+        topic: Topic name
+        current_accuracy: Current accuracy (0-100)
+        target_accuracy: Target accuracy (0-100)
+        hours_per_week: Study hours available per week
+        current_user: Authenticated user
+
+    Returns:
+        Time estimate and milestone breakdown
+    """
+    try:
+        estimate = PracticePlanService.estimate_time_to_proficiency(
+            current_accuracy,
+            target_accuracy,
+            hours_per_week
+        )
+
+        logger.info(f"Proficiency estimate for {current_user.username}: {estimate['weeks_required']} weeks")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "subject": subject,
+                "topic": topic,
+                "current_accuracy": current_accuracy,
+                "target_accuracy": target_accuracy,
+                **estimate,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Proficiency estimate error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to estimate proficiency"
         )
 
 
