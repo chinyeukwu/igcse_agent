@@ -14,7 +14,10 @@
       "PowerShell(@\\(Get-ChildItem -Path \"C:\\\\projects\\\\agenticaitutor\\\\.claude\\\\skills\" | Select-Object -ExpandProperty Name\\), @\\(\"---\"\\), @\\(Get-Item \"C:\\\\projects\\\\agenticaitutor\\\\.claude\\\\settings.json\" | Select-Object -ExpandProperty Name\\))",
       "Bash(node \".claude/skills/impeccable/scripts/context.mjs\")",
       "Bash(findstr /E \"PRODUCT|DESIGN|\\\\.md$\")",
-      "Bash(node \".claude/skills/impeccable/scripts/palette.mjs\")"
+      "Bash(node \".claude/skills/impeccable/scripts/palette.mjs\")",
+      "PowerShell(& \".\\\\run_backend.bat\")",
+      "PowerShell(& \".\\\\mytutor\\\\Scripts\\\\python.exe\" -m pip install --upgrade pdfplumber pypdf -q)",
+      "PowerShell(& \".\\\\mytutor\\\\Scripts\\\\python.exe\" \"C:\\\\projects\\\\agenticaitutor\\\\src\\\\papers\\\\reference_manager.py\")"
     ]
   }
 }

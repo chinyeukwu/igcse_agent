@@ -30,6 +30,7 @@ class User(Base):
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
     quiz_histories = relationship("QuizHistory", back_populates="user", cascade="all, delete-orphan")
+    chat_messages = relationship("ChatHistory", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """Return string representation of User."""
@@ -187,3 +188,121 @@ class AdminSettings(Base):
     def __repr__(self) -> str:
         """Return string representation of AdminSettings."""
         return f"<AdminSettings(setting_key={self.setting_key})>"
+
+
+class PaperQuestion(Base):
+    """Individual questions extracted from Pearson exam papers."""
+
+    __tablename__ = "paper_questions"
+
+    id = Column(Integer, primary_key=True)
+    paper_code = Column(String(10), nullable=False, index=True)  # 4ma1, 4ea1, etc.
+    paper_number = Column(Integer, nullable=False)  # Paper 1, 2, etc.
+    subject = Column(String(50), nullable=False, index=True)  # Maths, English, etc.
+    question_number = Column(Integer, nullable=False)  # Q1, Q2, etc.
+    question_text = Column(Text, nullable=False)
+    question_type = Column(String(50), nullable=True)  # multiple_choice, short_answer, essay, etc.
+    options_json = Column(Text, nullable=True)  # JSON for multiple choice
+    correct_answer = Column(Text, nullable=True)
+    marking_scheme = Column(Text, nullable=True)  # Detailed marking criteria
+    marks_total = Column(Integer, nullable=True)  # Total marks for question
+    source_filename = Column(String(255), nullable=False)  # Which PDF file
+    page_number = Column(Integer, nullable=True)
+    difficulty_level = Column(String(20), default="medium", nullable=False)  # easy, medium, hard
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    def __repr__(self) -> str:
+        """Return string representation of PaperQuestion."""
+        return f"<PaperQuestion(id={self.id}, paper_code={self.paper_code}, q={self.question_number})>"
+
+
+class QuizAttempt(Base):
+    """Detailed quiz attempt record."""
+
+    __tablename__ = "quiz_attempts"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    subject = Column(String(50), nullable=False, index=True)
+    difficulty_level = Column(String(20), nullable=False)  # easy, medium, hard
+    question_count = Column(Integer, nullable=False)
+    score_percentage = Column(Float, nullable=False)  # 0-100
+    time_taken_seconds = Column(Integer, nullable=True)
+    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    status = Column(String(20), default="in_progress", nullable=False)  # in_progress, completed, abandoned
+
+    # Relationships
+    user = relationship("User", backref="quiz_attempts")
+    student_answers = relationship("StudentAnswer", back_populates="quiz_attempt", cascade="all, delete-orphan")
+
+    def __repr__(self) -> str:
+        """Return string representation of QuizAttempt."""
+        return f"<QuizAttempt(id={self.id}, user_id={self.user_id}, score={self.score_percentage})>"
+
+
+# Composite index for efficient user quiz lookups
+__quizattempt_index = Index("ix_quizattempt_user_created", QuizAttempt.user_id, QuizAttempt.started_at)
+
+
+class StudentAnswer(Base):
+    """Individual student answer to a quiz question."""
+
+    __tablename__ = "student_answers"
+
+    id = Column(Integer, primary_key=True)
+    quiz_attempt_id = Column(Integer, ForeignKey("quiz_attempts.id"), nullable=False, index=True)
+    question_id = Column(Integer, ForeignKey("paper_questions.id"), nullable=True, index=True)
+    question_text = Column(Text, nullable=False)  # Copy of question for historical tracking
+    student_answer = Column(Text, nullable=False)
+    correct_answer = Column(Text, nullable=False)
+    is_correct = Column(Boolean, nullable=False)
+    score_earned = Column(Float, nullable=False)  # Points earned (0 to marks_total)
+    marks_total = Column(Float, nullable=False)  # Total points available
+    feedback = Column(Text, nullable=True)  # Marking scheme feedback
+    time_spent_seconds = Column(Integer, nullable=True)  # Time spent on this question
+    attempted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    quiz_attempt = relationship("QuizAttempt", back_populates="student_answers")
+    paper_question = relationship("PaperQuestion")
+
+    def __repr__(self) -> str:
+        """Return string representation of StudentAnswer."""
+        return f"<StudentAnswer(id={self.id}, score={self.score_earned}/{self.marks_total})>"
+
+
+class StudentDifficultyProfile(Base):
+    """Adaptive difficulty calibration profile for each student per subject."""
+
+    __tablename__ = "student_difficulty_profiles"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    subject = Column(String(50), nullable=False, index=True)
+    current_difficulty = Column(String(20), default="easy", nullable=False)  # easy, medium, hard
+    accuracy_rate = Column(Float, default=0.0, nullable=False)  # 0-100%
+    quizzes_completed = Column(Integer, default=0, nullable=False)
+    consecutive_correct = Column(Integer, default=0, nullable=False)
+    last_quiz_score = Column(Float, nullable=True)
+    average_score = Column(Float, nullable=True)  # Moving average
+    last_updated = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user = relationship("User", backref="difficulty_profiles")
+
+    def should_increase_difficulty(self) -> bool:
+        """Check if student should be moved to harder difficulty."""
+        return self.accuracy_rate >= 80.0 and self.consecutive_correct >= 2
+
+    def should_decrease_difficulty(self) -> bool:
+        """Check if student should be moved to easier difficulty."""
+        return self.accuracy_rate < 50.0 and self.current_difficulty != "easy"
+
+    def __repr__(self) -> str:
+        """Return string representation of StudentDifficultyProfile."""
+        return f"<StudentDifficultyProfile(user_id={self.user_id}, subject={self.subject}, difficulty={self.current_difficulty})>"
+
+
+# Composite index for efficient student profile lookups
+__studentprofile_index = Index("ix_studentprofile_user_subject", StudentDifficultyProfile.user_id, StudentDifficultyProfile.subject)
