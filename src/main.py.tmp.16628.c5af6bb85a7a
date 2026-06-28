@@ -283,12 +283,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost:8501",
-        "http://192.168.0.109:8000",
-    ],
+    allow_origins=["http://localhost:8501", "http://localhost:8000"],  # Streamlit ports
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
@@ -297,44 +292,6 @@ app.add_middleware(
 # Add logging middleware
 app.add_middleware(LoggingMiddleware)
 
-# ===== Static Files & Frontend Routes =====
-
-# Serve static files (CSS, JS, etc.) from src/frontend
-frontend_path = Path(__file__).parent / "frontend"
-if frontend_path.exists():
-    app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
-
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    """Serve the main chat interface."""
-    chat_file = frontend_path / "chat_interface.html"
-    if chat_file.exists():
-        return FileResponse(chat_file)
-    return HTMLResponse("<h1>Chat Interface Not Found</h1>", status_code=404)
-
-@app.get("/quiz", response_class=HTMLResponse)
-async def quiz_page():
-    """Serve the quiz interface."""
-    quiz_file = frontend_path / "quiz_interface.html"
-    if quiz_file.exists():
-        return FileResponse(quiz_file)
-    return HTMLResponse("<h1>Quiz Interface Not Found</h1>", status_code=404)
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page():
-    """Serve the student dashboard."""
-    dashboard_file = frontend_path / "student_dashboard.html"
-    if dashboard_file.exists():
-        return FileResponse(dashboard_file)
-    return HTMLResponse("<h1>Dashboard Not Found</h1>", status_code=404)
-
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_page():
-    """Serve the admin interface."""
-    admin_file = frontend_path / "admin_interface.html"
-    if admin_file.exists():
-        return FileResponse(admin_file)
-    return HTMLResponse("<h1>Admin Interface Not Found</h1>", status_code=404)
 
 # ===== Authentication Endpoints =====
 

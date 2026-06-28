@@ -3,6 +3,7 @@ mytutor/
 venv/
 env/
 .venv/
+/mytutor/
 
 # Python
 __pycache__/
