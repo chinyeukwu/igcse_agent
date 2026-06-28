@@ -10,21 +10,46 @@ import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 
-# Set up path for imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from src.services.notification_service import EmailNotificationService
-from src.database import get_session
-from src.database.models import User
-
-# Color codes for output
+# Color codes for output (defined early so functions can use them)
 GREEN = "\033[92m"
 RED = "\033[91m"
 YELLOW = "\033[93m"
 BLUE = "\033[94m"
 RESET = "\033[0m"
 BOLD = "\033[1m"
+
+# Set up path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Load .env file
+def load_env_file():
+    """Load .env file into environment variables"""
+    env_path = Path(__file__).parent / ".env"
+    if env_path.exists():
+        print(f"  Loading .env file from {env_path}...")
+        # Use utf-8-sig to handle BOM (Byte Order Mark)
+        with open(env_path, 'r', encoding='utf-8-sig') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    os.environ[key] = value
+        print(f"  .env file loaded successfully!")
+        print(f"  SMTP_HOST: {os.getenv('SMTP_HOST')}")
+        print(f"  SENDER_EMAIL: {os.getenv('SENDER_EMAIL')}\n")
+    else:
+        print(f"  Warning: .env file not found at {env_path}\n")
+
+# Load environment variables from .env before importing services
+load_env_file()
+
+from src.services.notification_service import EmailNotificationService
+from src.database import get_session
+from src.database.models import User
 
 
 def print_header(title):
@@ -36,7 +61,10 @@ def print_header(title):
 
 def print_test(name, passed, message=""):
     """Print test result"""
-    status = f"{GREEN}✓ PASSED{RESET}" if passed else f"{RED}✗ FAILED{RESET}"
+    # Use ASCII characters instead of Unicode to avoid encoding issues
+    check = "[PASS]" if passed else "[FAIL]"
+    color = GREEN if passed else RED
+    status = f"{color}{check}{RESET}"
     print(f"  {status} - {name}")
     if message:
         print(f"          {message}")
