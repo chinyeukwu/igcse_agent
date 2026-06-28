@@ -38,7 +38,7 @@ from src.services import (
     NotificationService,
     NotificationPreferences
 )
-from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyProfile, User
+from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyProfile, User, NotificationHistory
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -2739,6 +2739,194 @@ async def send_weekly_summary(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to send weekly summary",
+        )
+
+
+@app.get("/notifications/history", status_code=status.HTTP_200_OK)
+async def get_notification_history(
+    current_user: object = Depends(get_current_user),
+    limit: int = 50,
+    offset: int = 0,
+):
+    """
+    Get user's notification history.
+
+    Args:
+        current_user: Current authenticated user
+        limit: Number of records to return
+        offset: Number of records to skip
+
+    Returns:
+        List of notifications with metadata
+    """
+    try:
+        db_session = get_session()
+
+        # Get notifications
+        notifications = db_session.query(NotificationHistory).filter(
+            NotificationHistory.user_id == current_user.id
+        ).order_by(
+            NotificationHistory.created_at.desc()
+        ).offset(offset).limit(limit).all()
+
+        # Format response
+        history = [
+            {
+                "id": n.id,
+                "type": n.notification_type,
+                "recipient": n.recipient,
+                "subject": n.subject,
+                "status": n.status,
+                "topic_count": n.topic_count,
+                "sent_at": n.created_at.isoformat() if n.created_at else None,
+                "delivered_at": n.delivery_timestamp.isoformat() if n.delivery_timestamp else None,
+                "read": n.read_at is not None,
+            }
+            for n in notifications
+        ]
+
+        # Get total count
+        total = db_session.query(NotificationHistory).filter(
+            NotificationHistory.user_id == current_user.id
+        ).count()
+
+        logger.info(f"Retrieved notification history for user {current_user.id}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "notifications": history,
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get notification history error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve notification history",
+        )
+
+
+@app.post("/notifications/mark-read/{notification_id}", status_code=status.HTTP_200_OK)
+async def mark_notification_read(
+    notification_id: int,
+    current_user: object = Depends(get_current_user),
+):
+    """
+    Mark notification as read.
+
+    Args:
+        notification_id: ID of notification to mark as read
+        current_user: Current authenticated user
+
+    Returns:
+        Updated notification status
+    """
+    try:
+        db_session = get_session()
+
+        # Get notification
+        notification = db_session.query(NotificationHistory).filter(
+            NotificationHistory.id == notification_id,
+            NotificationHistory.user_id == current_user.id
+        ).first()
+
+        if not notification:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Notification not found",
+            )
+
+        # Mark as read
+        from datetime import datetime
+        notification.read_at = datetime.utcnow()
+        db_session.commit()
+
+        logger.info(f"Marked notification {notification_id} as read for user {current_user.id}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "notification_id": notification_id,
+                "read_at": notification.read_at.isoformat(),
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Mark notification read error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update notification",
+        )
+
+
+@app.get("/notifications/stats", status_code=status.HTTP_200_OK)
+async def get_notification_stats(
+    current_user: object = Depends(get_current_user),
+):
+    """
+    Get notification statistics for user.
+
+    Args:
+        current_user: Current authenticated user
+
+    Returns:
+        Notification statistics
+    """
+    try:
+        db_session = get_session()
+
+        # Get stats
+        total = db_session.query(NotificationHistory).filter(
+            NotificationHistory.user_id == current_user.id
+        ).count()
+
+        unread = db_session.query(NotificationHistory).filter(
+            NotificationHistory.user_id == current_user.id,
+            NotificationHistory.read_at == None
+        ).count()
+
+        by_type = {}
+        notifications = db_session.query(NotificationHistory).filter(
+            NotificationHistory.user_id == current_user.id
+        ).all()
+
+        for n in notifications:
+            if n.notification_type not in by_type:
+                by_type[n.notification_type] = 0
+            by_type[n.notification_type] += 1
+
+        by_status = {}
+        for n in notifications:
+            if n.status not in by_status:
+                by_status[n.status] = 0
+            by_status[n.status] += 1
+
+        logger.info(f"Retrieved notification stats for user {current_user.id}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "total": total,
+                "unread": unread,
+                "by_type": by_type,
+                "by_status": by_status,
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"Get notification stats error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve notification statistics",
         )
 
 

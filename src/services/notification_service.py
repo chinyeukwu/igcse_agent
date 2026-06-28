@@ -11,7 +11,7 @@ from email.mime.text import MIMEText
 from typing import Dict, List, Any, Optional
 from sqlalchemy.orm import Session as DBSession
 
-from src.database.models import StudentDifficultyProfile, StudentAnswer, QuizAttempt
+from src.database.models import StudentDifficultyProfile, StudentAnswer, QuizAttempt, NotificationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -300,6 +300,51 @@ class NotificationService:
         self.email_service = EmailNotificationService(smtp_host, smtp_port, sender_email, sender_password)
         self.sms_service = SMSNotificationService(twilio_account_sid, twilio_auth_token, twilio_phone_number)
 
+    def log_notification(
+        self,
+        db: DBSession,
+        user_id: int,
+        notification_type: str,
+        recipient: str,
+        topic_count: int,
+        topics: List[Dict[str, Any]],
+        status: str = "sent"
+    ) -> bool:
+        """
+        Log notification to database for history tracking.
+
+        Args:
+            db: Database session
+            user_id: Student ID
+            notification_type: email or sms
+            recipient: Email or phone number
+            topic_count: Number of topics in notification
+            topics: List of due topics
+            status: Delivery status (sent, pending, failed)
+
+        Returns:
+            True if logged successfully
+        """
+        try:
+            import json
+            notification = NotificationHistory(
+                user_id=user_id,
+                notification_type=notification_type,
+                subject="Due Topics Reminder",
+                recipient=recipient,
+                topic_count=topic_count,
+                topics=json.dumps([t.get("topic", "Unknown") for t in topics]),
+                status=status,
+                delivery_timestamp=datetime.utcnow() if status == "sent" else None,
+            )
+            db.add(notification)
+            db.commit()
+            logger.info(f"Logged notification for user {user_id} ({notification_type})")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to log notification: {str(e)}")
+            return False
+
     def send_due_topics_notification(
         self,
         db: DBSession,
@@ -347,6 +392,12 @@ class NotificationService:
                 due_topics,
                 subject
             )
+            # Log to database
+            self.log_notification(
+                db, user_id, "email", recipient_email,
+                len(due_topics), due_topics,
+                "sent" if results["email"] else "failed"
+            )
 
         # Send SMS if enabled
         if preferences.get("sms_enabled") and phone_number:
@@ -354,6 +405,12 @@ class NotificationService:
                 phone_number,
                 student_name,
                 due_topics
+            )
+            # Log to database
+            self.log_notification(
+                db, user_id, "sms", phone_number,
+                len(due_topics), due_topics,
+                "sent" if results["sms"] else "failed"
             )
 
         logger.info(f"Notification sent to user {user_id}: email={results['email']}, sms={results['sms']}")

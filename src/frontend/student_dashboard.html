@@ -606,10 +606,20 @@
 
         /* ===== Responsive Design ===== */
         @media (max-width: 768px) {
+            :root {
+                --font-size-label: 12px;
+                --font-size-body: 14px;
+                --font-size-title: 16px;
+                --font-size-headline: 20px;
+                --space-lg: 16px;
+                --space-md: 12px;
+            }
+
             .header {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: var(--space-md);
+                padding: var(--space-md);
             }
 
             .header__controls {
@@ -619,6 +629,7 @@
 
             .main {
                 padding: 0 var(--space-sm);
+                max-width: 100%;
             }
 
             .hero {
@@ -631,6 +642,7 @@
 
             .progress-grid {
                 grid-template-columns: 1fr;
+                gap: var(--space-md);
             }
 
             .stats-grid {
@@ -641,11 +653,155 @@
                 flex-direction: column;
                 align-items: flex-start;
                 gap: var(--space-md);
+                padding: var(--space-md);
             }
 
             .quiz-item__score {
                 width: 100%;
                 justify-content: space-between;
+            }
+
+            /* Mobile-optimized charts */
+            [style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            canvas {
+                max-width: 100%;
+                height: auto !important;
+            }
+
+            /* Touch-friendly buttons */
+            button, [role="button"] {
+                min-height: 44px;
+                min-width: 44px;
+                padding: var(--space-md) var(--space-lg);
+                font-size: var(--font-size-body);
+            }
+
+            /* Larger touch targets */
+            a, .quiz-item {
+                min-height: 44px;
+                padding: var(--space-md);
+            }
+
+            /* Table optimization */
+            table {
+                font-size: var(--font-size-label);
+            }
+
+            th, td {
+                padding: var(--space-sm) !important;
+            }
+
+            /* Hide less important columns on mobile */
+            th:nth-child(5),
+            td:nth-child(5) {
+                display: none;
+            }
+
+            /* Section title optimization */
+            .section__title {
+                font-size: var(--font-size-title);
+                margin-bottom: var(--space-md);
+            }
+
+            .section {
+                margin-bottom: var(--space-lg);
+            }
+        }
+
+        /* Small mobile devices (under 480px) */
+        @media (max-width: 480px) {
+            :root {
+                --font-size-label: 11px;
+                --font-size-body: 13px;
+                --font-size-title: 15px;
+                --font-size-headline: 18px;
+                --space-lg: 12px;
+                --space-md: 8px;
+            }
+
+            .header {
+                padding: var(--space-sm);
+            }
+
+            .header__greeting h1 {
+                font-size: var(--font-size-title);
+            }
+
+            .main {
+                padding: 0 4px;
+            }
+
+            .progress-card {
+                padding: var(--space-md);
+            }
+
+            .score-badge {
+                min-width: 50px;
+                padding: 4px 8px;
+                font-size: var(--font-size-label);
+            }
+
+            /* Stack all elements vertically */
+            .quiz-item {
+                padding: var(--space-sm);
+            }
+
+            .card {
+                padding: var(--space-md) !important;
+            }
+
+            /* Chart adjustments for small screens */
+            canvas {
+                max-height: 200px;
+            }
+
+            /* Simplified table for mobile */
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tbody tr {
+                display: block;
+                border-bottom: 1px solid var(--color-border);
+                padding: var(--space-md) 0;
+                margin-bottom: var(--space-md);
+            }
+
+            td {
+                display: block;
+                padding: var(--space-sm) 0 !important;
+                text-align: left !important;
+            }
+
+            td:before {
+                content: attr(data-label);
+                font-weight: var(--font-weight-semibold);
+                display: inline-block;
+                width: 100px;
+                color: var(--color-text-muted);
+            }
+        }
+
+        /* Tablet optimization (768px - 1024px) */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .main {
+                max-width: 100%;
+            }
+
+            .progress-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            [style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
             }
         }
 

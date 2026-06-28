@@ -304,5 +304,34 @@ class StudentDifficultyProfile(Base):
         return f"<StudentDifficultyProfile(user_id={self.user_id}, subject={self.subject}, difficulty={self.current_difficulty})>"
 
 
-# Composite index for efficient student profile lookups
+class NotificationHistory(Base):
+    """Notification history and delivery tracking."""
+
+    __tablename__ = "notification_history"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    notification_type = Column(String(20), nullable=False)  # email, sms
+    subject = Column(String(100), nullable=False)
+    recipient = Column(String(255), nullable=False)  # email or phone
+    topic_count = Column(Integer, default=0)
+    topics = Column(Text, nullable=True)  # JSON list of due topics
+    status = Column(String(20), default="sent", nullable=False)  # sent, pending, failed, bounced
+    delivery_timestamp = Column(DateTime, nullable=True)
+    delivery_error = Column(Text, nullable=True)
+    read_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    user = relationship("User", backref="notification_history")
+
+    def __repr__(self) -> str:
+        """Return string representation of NotificationHistory."""
+        return f"<NotificationHistory(user_id={self.user_id}, type={self.notification_type}, status={self.status})>"
+
+
+# Composite index for efficient profile lookups
 __studentprofile_index = Index("ix_studentprofile_user_subject", StudentDifficultyProfile.user_id, StudentDifficultyProfile.subject)
+
+# Composite index for notification queries
+__notification_index = Index("ix_notification_user_created", NotificationHistory.user_id, NotificationHistory.created_at)
