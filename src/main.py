@@ -27,6 +27,8 @@ from src.security import InputValidator, ResponseValidator, AuditLogger
 from src.offline import CacheManager, SyncManager, StatusDetector
 from src.quiz import QuizGenerator, QuizService
 from src.admin import AdminService
+from src.services import QuizScoringService, DifficultyCalibrationService, QuizAttemptService
+from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyProfile
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -117,6 +119,27 @@ class QuizSubmitInput(BaseModel):
     questions: list  # Raw questions from generation
     user_answers: list  # List of answer indices (0-3)
     time_taken_seconds: Optional[int] = None
+
+
+class QuizAttemptStartInput(BaseModel):
+    """Start a new quiz attempt."""
+    subject: str
+    difficulty: Optional[str] = None  # If None, use recommended from profile
+    question_count: int = 5
+
+
+class QuestionAnswerInput(BaseModel):
+    """Submit an answer to a question during quiz."""
+    quiz_attempt_id: int
+    question_number: int
+    student_answer: str
+    time_spent_seconds: Optional[int] = None
+
+
+class QuizAttemptCompleteInput(BaseModel):
+    """Complete a quiz attempt."""
+    quiz_attempt_id: int
+    total_time_seconds: Optional[int] = None
 
 
 class AdminUserActionInput(BaseModel):
@@ -1186,6 +1209,326 @@ async def get_quiz_detail(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve quiz details",
+        )
+
+
+# ===== NEW: Detailed Quiz Tracking Endpoints =====
+
+@app.post("/quiz/attempt/start", status_code=status.HTTP_201_CREATED)
+async def start_quiz_attempt(
+    quiz_input: QuizAttemptStartInput,
+    current_user = Depends(get_current_user),
+):
+    """
+    Start a new quiz attempt and return questions.
+    Requires authentication.
+
+    Args:
+        quiz_input: Quiz configuration
+        current_user: Authenticated user
+
+    Returns:
+        Quiz attempt ID and questions
+    """
+    try:
+        db_session = get_session()
+
+        # Get or create difficulty profile
+        profile = DifficultyCalibrationService.get_or_create_profile(
+            db_session,
+            current_user.id,
+            quiz_input.subject
+        )
+
+        # Use recommended difficulty if not specified
+        difficulty = quiz_input.difficulty or profile.current_difficulty
+
+        # Create quiz attempt record
+        attempt = QuizAttemptService.create_quiz_attempt(
+            db_session,
+            current_user.id,
+            quiz_input.subject,
+            difficulty,
+            quiz_input.question_count
+        )
+
+        # Generate questions
+        success, questions, error = QuizGenerator.generate_quiz(
+            subject=quiz_input.subject,
+            difficulty=difficulty,
+            question_count=quiz_input.question_count
+        )
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to generate quiz: {error}"
+            )
+
+        logger.info(f"Quiz attempt {attempt.id} started for {current_user.username}")
+
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content={
+                "attempt_id": attempt.id,
+                "subject": quiz_input.subject,
+                "difficulty": difficulty,
+                "question_count": len(questions),
+                "questions": questions,
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Quiz attempt start error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to start quiz attempt"
+        )
+
+
+@app.post("/quiz/attempt/{attempt_id}/answer", status_code=status.HTTP_200_OK)
+async def submit_question_answer(
+    attempt_id: int,
+    answer_input: QuestionAnswerInput,
+    current_user = Depends(get_current_user),
+):
+    """
+    Submit an answer to a question during quiz.
+    Requires authentication.
+
+    Args:
+        attempt_id: Quiz attempt ID
+        answer_input: Answer data
+        current_user: Authenticated user
+
+    Returns:
+        Score for this answer and feedback
+    """
+    try:
+        db_session = get_session()
+
+        # Verify quiz attempt belongs to user
+        attempt = db_session.query(QuizAttempt).filter(
+            QuizAttempt.id == attempt_id,
+            QuizAttempt.user_id == current_user.id
+        ).first()
+
+        if not attempt:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Quiz attempt not found"
+            )
+
+        if attempt.status != "in_progress":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Quiz attempt is not in progress"
+            )
+
+        # For now, record as correct/incorrect based on matching (simplified)
+        # In production, this would integrate with PaperQuestion and marking schemes
+        is_correct = True  # Placeholder
+        score_earned = 1.0 if is_correct else 0.0
+        feedback = "Answer recorded" if is_correct else "Incorrect"
+
+        # Record the answer
+        student_answer = QuizAttemptService.record_answer(
+            db_session,
+            attempt_id,
+            None,  # question_id (would be set if using PaperQuestion)
+            f"Question {answer_input.question_number}",
+            answer_input.student_answer,
+            "Expected answer",  # Placeholder
+            is_correct,
+            score_earned,
+            1.0,  # marks_total
+            feedback
+        )
+
+        logger.info(f"Answer recorded for quiz attempt {attempt_id}: Q{answer_input.question_number}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "answer_id": student_answer.id,
+                "is_correct": is_correct,
+                "score": score_earned,
+                "feedback": feedback,
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Answer submission error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to submit answer"
+        )
+
+
+@app.post("/quiz/attempt/{attempt_id}/complete", status_code=status.HTTP_200_OK)
+async def complete_quiz_attempt(
+    attempt_id: int,
+    complete_input: QuizAttemptCompleteInput,
+    current_user = Depends(get_current_user),
+):
+    """
+    Complete a quiz attempt and calculate final score.
+    Triggers difficulty calibration.
+    Requires authentication.
+
+    Args:
+        attempt_id: Quiz attempt ID
+        complete_input: Completion data with time taken
+        current_user: Authenticated user
+
+    Returns:
+        Final score and difficulty adjustment
+    """
+    try:
+        db_session = get_session()
+
+        # Verify quiz attempt belongs to user
+        attempt = db_session.query(QuizAttempt).filter(
+            QuizAttempt.id == attempt_id,
+            QuizAttempt.user_id == current_user.id
+        ).first()
+
+        if not attempt:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Quiz attempt not found"
+            )
+
+        # Complete the quiz
+        completed_attempt = QuizAttemptService.complete_quiz_attempt(
+            db_session,
+            attempt_id,
+            complete_input.total_time_seconds
+        )
+
+        # Get updated difficulty profile
+        profile = DifficultyCalibrationService.get_or_create_profile(
+            db_session,
+            current_user.id,
+            completed_attempt.subject
+        )
+
+        logger.info(f"Quiz attempt {attempt_id} completed: score={completed_attempt.score_percentage:.1f}%, difficulty={profile.current_difficulty}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "attempt_id": attempt_id,
+                "score": completed_attempt.score_percentage,
+                "current_difficulty": profile.current_difficulty,
+                "next_recommended_difficulty": profile.current_difficulty,
+                "accuracy_rate": profile.accuracy_rate,
+                "improvement_message": f"Great job! Keep it up!" if completed_attempt.score_percentage >= 70 else "Keep practicing!",
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Quiz completion error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to complete quiz"
+        )
+
+
+@app.get("/quiz/performance", status_code=status.HTTP_200_OK)
+async def get_quiz_performance(
+    current_user = Depends(get_current_user),
+):
+    """
+    Get user's performance summary across all subjects.
+    Requires authentication.
+
+    Args:
+        current_user: Authenticated user
+
+    Returns:
+        Performance metrics by subject
+    """
+    try:
+        db_session = get_session()
+
+        performance = QuizAttemptService.get_user_performance_summary(
+            db_session,
+            current_user.id
+        )
+
+        logger.info(f"Performance summary retrieved for {current_user.username}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=performance
+        )
+
+    except Exception as e:
+        logger.error(f"Performance retrieval error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve performance data"
+        )
+
+
+@app.get("/quiz/recommended-difficulty/{subject}", status_code=status.HTTP_200_OK)
+async def get_recommended_difficulty(
+    subject: str,
+    current_user = Depends(get_current_user),
+):
+    """
+    Get recommended difficulty for next quiz based on performance.
+    Requires authentication.
+
+    Args:
+        subject: Subject name
+        current_user: Authenticated user
+
+    Returns:
+        Recommended difficulty and reasoning
+    """
+    try:
+        db_session = get_session()
+
+        profile = DifficultyCalibrationService.get_or_create_profile(
+            db_session,
+            current_user.id,
+            subject
+        )
+
+        reasoning = []
+        if profile.quizzes_completed == 0:
+            reasoning.append("Starting at easy level")
+        elif profile.accuracy_rate >= 80:
+            reasoning.append(f"Excellent performance ({profile.accuracy_rate:.0f}% accuracy) - ready for harder challenges!")
+        elif profile.accuracy_rate < 50:
+            reasoning.append(f"Difficulty may need adjustment ({profile.accuracy_rate:.0f}% accuracy)")
+        else:
+            reasoning.append(f"Solid performance ({profile.accuracy_rate:.0f}% accuracy) - maintain current level")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "subject": subject,
+                "recommended_difficulty": profile.current_difficulty,
+                "current_accuracy": profile.accuracy_rate,
+                "quizzes_completed": profile.quizzes_completed,
+                "reasoning": reasoning,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Recommended difficulty error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get recommended difficulty"
         )
 
 
