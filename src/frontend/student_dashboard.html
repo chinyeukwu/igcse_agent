@@ -845,6 +845,141 @@
                     </div>
                 </div>
 
+                <!-- Performance Charts Section -->
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>📊</span>
+                        Performance Analytics
+                    </h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-xl);">
+                        <!-- Score Trend Chart -->
+                        <div class="card" style="padding: var(--space-lg);">
+                            <h4 style="margin-bottom: var(--space-md); color: var(--color-ink); font-weight: var(--font-weight-semibold);">Score Trend (Last 10 Quizzes)</h4>
+                            <canvas id="score-trend-chart" style="height: 250px;"></canvas>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-top: var(--space-md);">Average: <strong>78%</strong> · Trend: ↑ +3%</p>
+                        </div>
+                        <!-- Accuracy by Subject -->
+                        <div class="card" style="padding: var(--space-lg);">
+                            <h4 style="margin-bottom: var(--space-md); color: var(--color-ink); font-weight: var(--font-weight-semibold);">Accuracy by Subject</h4>
+                            <canvas id="accuracy-subject-chart" style="height: 250px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Complete Quiz History Section -->
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>📚</span>
+                        Complete Quiz History
+                    </h3>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: var(--space-xl);">
+                            <thead style="background-color: var(--color-surface); border-bottom: 2px solid var(--color-border);">
+                                <tr>
+                                    <th style="padding: var(--space-md); text-align: left; font-weight: var(--font-weight-semibold);">Date</th>
+                                    <th style="padding: var(--space-md); text-align: left; font-weight: var(--font-weight-semibold);">Subject</th>
+                                    <th style="padding: var(--space-md); text-align: left; font-weight: var(--font-weight-semibold);">Topic</th>
+                                    <th style="padding: var(--space-md); text-align: center; font-weight: var(--font-weight-semibold);">Score</th>
+                                    <th style="padding: var(--space-md); text-align: center; font-weight: var(--font-weight-semibold);">Difficulty</th>
+                                    <th style="padding: var(--space-md); text-align: center; font-weight: var(--font-weight-semibold);">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quiz-history-table">
+                                <tr style="border-bottom: 1px solid var(--color-border);">
+                                    <td style="padding: var(--space-md);">Jun 28, 2026</td>
+                                    <td style="padding: var(--space-md);">Maths</td>
+                                    <td style="padding: var(--space-md);">Quadratic Equations</td>
+                                    <td style="padding: var(--space-md); text-align: center;"><span style="background-color: var(--color-success); color: white; padding: 4px 8px; border-radius: 4px;">88%</span></td>
+                                    <td style="padding: var(--space-md); text-align: center;">Medium</td>
+                                    <td style="padding: var(--space-md); text-align: center;">12 min</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--color-border);">
+                                    <td style="padding: var(--space-md);">Jun 26, 2026</td>
+                                    <td style="padding: var(--space-md);">English</td>
+                                    <td style="padding: var(--space-md);">Shakespeare's Sonnets</td>
+                                    <td style="padding: var(--space-md); text-align: center;"><span style="background-color: var(--color-warning); color: white; padding: 4px 8px; border-radius: 4px;">76%</span></td>
+                                    <td style="padding: var(--space-md); text-align: center;">Medium</td>
+                                    <td style="padding: var(--space-md); text-align: center;">15 min</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--color-border);">
+                                    <td style="padding: var(--space-md);">Jun 24, 2026</td>
+                                    <td style="padding: var(--space-md);">Science</td>
+                                    <td style="padding: var(--space-md);">Photosynthesis</td>
+                                    <td style="padding: var(--space-md); text-align: center;"><span style="background-color: var(--color-success); color: white; padding: 4px 8px; border-radius: 4px;">92%</span></td>
+                                    <td style="padding: var(--space-md); text-align: center;">Hard</td>
+                                    <td style="padding: var(--space-md); text-align: center;">18 min</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Topics Due for Review Section -->
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>🔄</span>
+                        Topics Due for Review (Spaced Repetition)
+                    </h3>
+                    <div class="progress-grid" id="topics-due-grid">
+                        <div class="card" style="padding: var(--space-lg);">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-md);">
+                                <div>
+                                    <div style="font-weight: var(--font-weight-semibold); color: var(--color-ink);">Trigonometry</div>
+                                    <div style="color: var(--color-text-muted); font-size: var(--font-size-label);">Maths</div>
+                                </div>
+                                <span style="background-color: var(--color-error); color: white; padding: 4px 8px; border-radius: 4px; font-size: var(--font-size-label);">62% accuracy</span>
+                            </div>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-bottom: var(--space-md);">Last reviewed: 9 days ago · Urgency: <strong style="color: var(--color-error);">HIGH</strong></p>
+                            <button class="btn-primary" style="width: 100%; padding: var(--space-sm) var(--space-md); font-size: var(--font-size-label);">Quiz Now</button>
+                        </div>
+                        <div class="card" style="padding: var(--space-lg);">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-md);">
+                                <div>
+                                    <div style="font-weight: var(--font-weight-semibold); color: var(--color-ink);">Poetry Analysis</div>
+                                    <div style="color: var(--color-text-muted); font-size: var(--font-size-label);">English</div>
+                                </div>
+                                <span style="background-color: var(--color-warning); color: white; padding: 4px 8px; border-radius: 4px; font-size: var(--font-size-label);">68% accuracy</span>
+                            </div>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-bottom: var(--space-md);">Last reviewed: 5 days ago · Urgency: <strong style="color: var(--color-warning);">MEDIUM</strong></p>
+                            <button class="btn-primary" style="width: 100%; padding: var(--space-sm) var(--space-md); font-size: var(--font-size-label);">Quiz Now</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personalized Practice Plan -->
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>📋</span>
+                        Your Personalized Practice Plan
+                    </h3>
+                    <div class="card" style="padding: var(--space-lg); background: linear-gradient(135deg, var(--color-primary-green) 0%, var(--color-accent-gold) 100%); color: white;">
+                        <h4 style="margin-bottom: var(--space-md); color: white;">Week 1: Focus on Critical Gaps</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-lg);">
+                            <div>
+                                <div style="font-weight: var(--font-weight-semibold); margin-bottom: var(--space-sm);">📌 Priority Topics</div>
+                                <ul style="list-style: none; padding: 0; font-size: var(--font-size-label);">
+                                    <li>✓ Trigonometry (62% → 75%)</li>
+                                    <li>✓ Poetry Analysis (68% → 75%)</li>
+                                    <li>✓ Chemical Reactions (58% → 75%)</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <div style="font-weight: var(--font-weight-semibold); margin-bottom: var(--space-sm);">⏱️ Study Schedule</div>
+                                <ul style="list-style: none; padding: 0; font-size: var(--font-size-label);">
+                                    <li>Mon: Trigonometry (45 min)</li>
+                                    <li>Wed: Poetry Analysis (40 min)</li>
+                                    <li>Fri: Chemistry (50 min)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div style="background-color: rgba(255,255,255,0.2); padding: var(--space-md); border-radius: var(--radius-md);">
+                            <div style="font-size: var(--font-size-label); margin-bottom: var(--space-sm);">⏳ Time to Proficiency (85% Accuracy)</div>
+                            <div style="font-size: var(--font-size-display); font-weight: var(--font-weight-bold);">2-3 weeks</div>
+                            <p style="font-size: var(--font-size-label); margin-top: var(--space-sm);">at 5 hours/week</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Recommendations Section -->
                 <div class="section">
                     <h3 class="section__title">
