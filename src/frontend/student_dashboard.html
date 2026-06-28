@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard — Agentic AI Tutor</title>
+    <script src="theme-manager.js"></script>
+    <style>
+        /* ===== CSS Custom Properties: Color Palette ===== */
+        :root {
+            /* Light Mode (Default) */
+            --color-primary-green: oklch(0.48 0.16 140);
+            --color-accent-gold: oklch(0.56 0.13 60);
+            --color-bg: oklch(1.0 0.0 0);
+            --color-surface: oklch(0.97 0.0 0);
+            --color-ink: oklch(0.08 0.0 0);
+            --color-text-muted: oklch(0.55 0.0 0);
+            --color-border: oklch(0.88 0.0 0);
+            --color-success: oklch(0.58 0.15 142);
+            --color-warning: oklch(0.65 0.12 55);
+            --color-error: oklch(0.52 0.16 15);
+
+            /* Typography Scale */
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            --font-size-label: 14px;
+            --font-size-body: 16px;
+            --font-size-title: 18px;
+            --font-size-headline: 24px;
+            --font-size-display: 32px;
+
+            --font-weight-regular: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+
+            --line-height-tight: 1.1;
+            --line-height-normal: 1.5;
+            --line-height-relaxed: 1.75;
+
+            /* Spacing Scale */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+
+            /* Rounded Corners */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+
+            /* Z-Index Scale */
+            --z-dropdown: 100;
+            --z-sticky: 200;
+            --z-modal-backdrop: 300;
+            --z-modal: 400;
+            --z-toast: 500;
+            --z-tooltip: 600;
+
+            /* Transitions */
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg: oklch(0.1 0.0 0);
+                --color-surface: oklch(0.15 0.0 0);
+                --color-ink: oklch(0.95 0.0 0);
+                --color-text-muted: oklch(0.7 0.0 0);
+                --color-border: oklch(0.25 0.0 0);
+            }
+        }
+
+        /* ===== Global Styles ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family);
+            font-size: var(--font-size-body);
+            line-height: var(--line-height-normal);
+            color: var(--color-ink);
+            background-color: var(--color-bg);
+            transition: background-color var(--transition-normal), color var(--transition-normal);
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-weight: var(--font-weight-semibold);
+            line-height: var(--line-height-tight);
+            margin-bottom: var(--space-md);
+            text-wrap: balance;
+        }
+
+        h1 {
+            font-size: var(--font-size-display);
+        }
+
+        h2 {
+            font-size: var(--font-size-headline);
+        }
+
+        h3 {
+            font-size: var(--font-size-title);
+        }
+
+        p {
+            margin-bottom: var(--space-md);
+        }
+
+        a {
+            color: var(--color-primary-green);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        a:hover {
+            color: var(--color-accent-gold);
+        }
+
+        /* ===== Layout ===== */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-lg);
+            min-height: 100vh;
+            background-color: var(--color-bg);
+        }
+
+        .header {
+            background-color: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+            padding: var(--space-lg) var(--space-md);
+            position: sticky;
+            top: 0;
+            z-index: var(--z-sticky);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header__content {
+            display: flex;
+            gap: var(--space-md);
+            align-items: center;
+        }
+
+        .header__greeting {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .header__greeting h1 {
+            margin: 0;
+            font-size: var(--font-size-title);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .header__logo {
+            font-size: var(--font-size-headline);
+        }
+
+        .header__subtitle {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+        }
+
+        .header__controls {
+            display: flex;
+            gap: var(--space-md);
+            align-items: center;
+        }
+
+        .main {
+            padding: 0 var(--space-md);
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ===== Buttons ===== */
+        button {
+            font-family: var(--font-family);
+            font-size: var(--font-size-body);
+            font-weight: var(--font-weight-medium);
+            border: none;
+            border-radius: var(--radius-md);
+            padding: var(--space-md) var(--space-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:focus-visible {
+            outline: 3px solid var(--color-accent-gold);
+            outline-offset: 2px;
+        }
+
+        .btn-secondary {
+            background-color: var(--color-surface);
+            color: var(--color-ink);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--color-border);
+        }
+
+        .btn-secondary:focus-visible {
+            outline: 3px solid var(--color-primary-green);
+            outline-offset: 2px;
+        }
+
+        .btn-ghost {
+            background-color: transparent;
+            color: var(--color-primary-green);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-ghost:hover {
+            background-color: var(--color-surface);
+        }
+
+        .btn-small {
+            padding: var(--space-sm) var(--space-md);
+            font-size: var(--font-size-label);
+        }
+
+        /* ===== Cards & Containers ===== */
+        .card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+        }
+
+        .card--interactive:hover {
+            border-color: var(--color-primary-green);
+            transition: border-color var(--transition-fast);
+        }
+
+        /* ===== Hero / Welcome Section ===== */
+        .hero {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2xl) var(--space-lg);
+            text-align: center;
+            margin-bottom: var(--space-xl);
+        }
+
+        .hero__title {
+            font-size: var(--font-size-display);
+            margin-bottom: var(--space-md);
+        }
+
+        .hero__subtitle {
+            font-size: var(--font-size-title);
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-lg);
+        }
+
+        .hero__cta {
+            display: inline-block;
+        }
+
+        .hero.hero--first-time {
+            border: 2px solid var(--color-primary-green);
+        }
+
+        /* ===== Progress Sections ===== */
+        .section {
+            margin-bottom: var(--space-xl);
+        }
+
+        .section__title {
+            font-size: var(--font-size-headline);
+            margin-bottom: var(--space-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .section__title-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            color: var(--color-primary-green);
+        }
+
+        /* Progress Cards Grid */
+        .progress-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .progress-card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+        }
+
+        .progress-card:hover {
+            border-color: var(--color-primary-green);
+            transform: translateY(-4px);
+        }
+
+        .progress-card:focus-visible {
+            outline: 3px solid var(--color-primary-green);
+            outline-offset: 0;
+        }
+
+        .progress-card__subject {
+            font-weight: var(--font-weight-semibold);
+            font-size: var(--font-size-title);
+            margin-bottom: var(--space-md);
+        }
+
+        .progress-card__bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--color-border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: var(--space-md);
+        }
+
+        .progress-card__fill {
+            height: 100%;
+            background-color: var(--color-primary-green);
+            border-radius: 4px;
+        }
+
+        .progress-card__percentage {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+            font-weight: var(--font-weight-medium);
+        }
+
+        /* ===== Recent Quizzes List ===== */
+        .quiz-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .quiz-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-md) var(--space-lg);
+            transition: all var(--transition-fast);
+        }
+
+        .quiz-item:hover {
+            border-color: var(--color-primary-green);
+        }
+
+        .quiz-item__info {
+            flex: 1;
+        }
+
+        .quiz-item__title {
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: var(--space-xs);
+        }
+
+        .quiz-item__meta {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+        }
+
+        .quiz-item__score {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .score-badge {
+            background-color: var(--color-primary-green);
+            color: white;
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-label);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .trend {
+            font-size: 18px;
+        }
+
+        .trend.up {
+            color: var(--color-success);
+        }
+
+        .trend.down {
+            color: var(--color-error);
+        }
+
+        /* ===== Recommendations ===== */
+        .recommendation {
+            background-color: var(--color-surface);
+            border-top: 2px solid var(--color-accent-gold);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+        }
+
+        .recommendation__title {
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: var(--space-sm);
+        }
+
+        .recommendation__description {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-md);
+        }
+
+        /* ===== Stats Grid ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-md);
+            margin-bottom: var(--space-xl);
+        }
+
+        .stat-card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            text-align: center;
+        }
+
+        .stat-card__value {
+            font-size: var(--font-size-display);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary-green);
+            margin-bottom: var(--space-sm);
+        }
+
+        .stat-card__label {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ===== Empty State ===== */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-2xl) var(--space-lg);
+        }
+
+        .empty-state__icon {
+            font-size: 48px;
+            margin-bottom: var(--space-lg);
+        }
+
+        .empty-state__title {
+            font-size: var(--font-size-headline);
+            margin-bottom: var(--space-md);
+        }
+
+        .empty-state__text {
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-lg);
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ===== Loading Skeleton ===== */
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                var(--color-border) 25%,
+                var(--color-surface) 50%,
+                var(--color-border) 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-bar {
+            height: 12px;
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        .skeleton-line {
+            height: 16px;
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--space-sm);
+        }
+
+        /* ===== Modal ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: var(--z-modal-backdrop);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal__content {
+            background-color: var(--color-bg);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2xl);
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            z-index: var(--z-modal);
+        }
+
+        .modal__close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--color-text-muted);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+        }
+
+        .modal__close:hover {
+            color: var(--color-ink);
+        }
+
+        /* ===== Accessibility ===== */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ===== Responsive Design ===== */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-md);
+            }
+
+            .header__controls {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .main {
+                padding: 0 var(--space-sm);
+            }
+
+            .hero {
+                padding: var(--space-lg);
+            }
+
+            .hero__title {
+                font-size: var(--font-size-headline);
+            }
+
+            .progress-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quiz-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-md);
+            }
+
+            .quiz-item__score {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Dark Mode Specific */
+        @media (prefers-color-scheme: dark) {
+            .modal__content {
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        /* Theme Toggle Button */
+        /* Theme Toggle Button */
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--color-ink);
+            transition: all var(--transition-fast);
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--color-primary-green);
+            color: var(--color-primary-green);
+        }
+
+        .theme-toggle:focus-visible {
+            outline: 3px solid var(--color-primary-green);
+            outline-offset: 2px;
+        }
+
+        /* User-selected dark mode (overrides system preference) */
+        html[data-theme="dark"] {
+            --color-bg: oklch(0.1 0.0 0);
+            --color-surface: oklch(0.15 0.0 0);
+            --color-ink: oklch(0.95 0.0 0);
+            --color-text-muted: oklch(0.7 0.0 0);
+            --color-border: oklch(0.25 0.0 0);
+        }
+
+        /* User-selected light mode (overrides system preference) */
+        html[data-theme="light"] {
+            --color-bg: oklch(1.0 0.0 0);
+            --color-surface: oklch(0.97 0.0 0);
+            --color-ink: oklch(0.08 0.0 0);
+            --color-text-muted: oklch(0.55 0.0 0);
+            --color-border: oklch(0.88 0.0 0);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header__content">
+                <div class="header__greeting">
+                    <h1 id="greeting-name">Welcome back, Alex!</h1>
+                    <span class="header__subtitle" id="greeting-date">Let's keep your momentum going</span>
+                </div>
+            </div>
+            <div class="header__controls">
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+                <button class="btn-secondary btn-small" id="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- First-Time Student Flow -->
+            <div id="first-time-flow" class="section" style="display: none;">
+                <div class="hero hero--first-time">
+                    <h2 class="hero__title">Welcome to Your Learning Journey</h2>
+                    <p class="hero__subtitle">Start with your first quiz to begin tracking progress and building mastery</p>
+                    <button class="btn-primary hero__cta" id="start-first-quiz-btn">
+                        <span>Start Your First Quiz</span>
+                        <span>→</span>
+                    </button>
+                </div>
+
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>📚</span>
+                        Choose Your Subject
+                    </h3>
+                    <div class="progress-grid" id="subject-grid">
+                        <div class="progress-card" data-subject="maths">
+                            <div class="progress-card__subject">Maths</div>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label);">Algebra, Geometry, Trigonometry</p>
+                        </div>
+                        <div class="progress-card" data-subject="english">
+                            <div class="progress-card__subject">English</div>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label);">Literature, Language, Writing</p>
+                        </div>
+                        <div class="progress-card" data-subject="science">
+                            <div class="progress-card__subject">Science</div>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label);">Physics, Chemistry, Biology</p>
+                        </div>
+                        <div class="progress-card" data-subject="french">
+                            <div class="progress-card__subject">French</div>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label);">Language & Culture</p>
+                        </div>
+                        <div class="progress-card" data-subject="finearts">
+                            <div class="progress-card__subject">Fine Arts</div>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label);">Art History & Theory</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="empty-state">
+                    <p style="color: var(--color-text-muted);">✨ Complete your first quiz to unlock your personalized dashboard</p>
+                </div>
+            </div>
+
+            <!-- Returning Student Flow -->
+            <div id="returning-flow" class="section" style="display: none;">
+                <!-- Learning Progress Section -->
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>📈</span>
+                        Your Learning Progress
+                    </h3>
+                    <div class="progress-grid" id="progress-grid">
+                        <div class="progress-card">
+                            <div class="progress-card__subject">Maths</div>
+                            <div class="progress-card__bar">
+                                <div class="progress-card__fill" style="width: 75%;"></div>
+                            </div>
+                            <div class="progress-card__percentage">75% mastery</div>
+                        </div>
+                        <div class="progress-card">
+                            <div class="progress-card__subject">English</div>
+                            <div class="progress-card__bar">
+                                <div class="progress-card__fill" style="width: 62%;"></div>
+                            </div>
+                            <div class="progress-card__percentage">62% mastery</div>
+                        </div>
+                        <div class="progress-card">
+                            <div class="progress-card__subject">Science</div>
+                            <div class="progress-card__bar">
+                                <div class="progress-card__fill" style="width: 88%;"></div>
+                            </div>
+                            <div class="progress-card__percentage">88% mastery</div>
+                        </div>
+                        <div class="progress-card">
+                            <div class="progress-card__subject">French</div>
+                            <div class="progress-card__bar">
+                                <div class="progress-card__fill" style="width: 45%;"></div>
+                            </div>
+                            <div class="progress-card__percentage">45% mastery</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Quizzes Section -->
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>📝</span>
+                        Recent Quiz Results
+                    </h3>
+                    <div class="quiz-list" id="quiz-list">
+                        <div class="quiz-item">
+                            <div class="quiz-item__info">
+                                <div class="quiz-item__title">Quadratic Equations</div>
+                                <div class="quiz-item__meta">Maths · 2 days ago</div>
+                            </div>
+                            <div class="quiz-item__score">
+                                <span class="score-badge">88%</span>
+                                <span class="trend up">↑</span>
+                            </div>
+                        </div>
+                        <div class="quiz-item">
+                            <div class="quiz-item__info">
+                                <div class="quiz-item__title">Shakespeare's Sonnets</div>
+                                <div class="quiz-item__meta">English · 4 days ago</div>
+                            </div>
+                            <div class="quiz-item__score">
+                                <span class="score-badge">76%</span>
+                                <span class="trend down">↓</span>
+                            </div>
+                        </div>
+                        <div class="quiz-item">
+                            <div class="quiz-item__info">
+                                <div class="quiz-item__title">Photosynthesis</div>
+                                <div class="quiz-item__meta">Science · 6 days ago</div>
+                            </div>
+                            <div class="quiz-item__score">
+                                <span class="score-badge">92%</span>
+                                <span class="trend up">↑</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations Section -->
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>💡</span>
+                        Recommended Next Steps
+                    </h3>
+                    <div class="recommendation">
+                        <div class="recommendation__title">Grammar & Syntax (Weak Area)</div>
+                        <div class="recommendation__description">Your English grammar scores dipped 12% this week. Let's focus on strengthening this area.</div>
+                        <button class="btn-primary btn-small">Practice Grammar</button>
+                    </div>
+                    <div class="recommendation">
+                        <div class="recommendation__title">French Vocabulary Expansion</div>
+                        <div class="recommendation__description">You're making great progress! Challenge yourself with advanced vocabulary.</div>
+                        <button class="btn-primary btn-small">Start Advanced Vocab Quiz</button>
+                    </div>
+                </div>
+
+                <!-- Stats Section -->
+                <div class="section">
+                    <h3 class="section__title">
+                        <span>⏱️</span>
+                        This Week's Engagement
+                    </h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-card__value">5</div>
+                            <div class="stat-card__label">Quizzes Completed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__value">3</div>
+                            <div class="stat-card__label">Day Streak</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__value">4h 22m</div>
+                            <div class="stat-card__label">Time Learning</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__value">82%</div>
+                            <div class="stat-card__label">Avg Score</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Call-to-Action -->
+                <div class="section" style="margin-bottom: var(--space-2xl);">
+                    <div class="hero">
+                        <h2 class="hero__title">Ready to Learn More?</h2>
+                        <p class="hero__subtitle">Jump into your next quiz or ask the AI tutor a question</p>
+                        <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;">
+                            <button class="btn-primary">Start a Quiz</button>
+                            <button class="btn-secondary">Chat with Tutor</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State (Demo) -->
+            <div id="loading-state" style="display: none;">
+                <div class="section">
+                    <h3 class="section__title">Loading your dashboard...</h3>
+                    <div class="progress-grid">
+                        <div class="progress-card">
+                            <div class="skeleton-bar"></div>
+                            <div class="skeleton-line" style="width: 60%;"></div>
+                        </div>
+                        <div class="progress-card">
+                            <div class="skeleton-bar"></div>
+                            <div class="skeleton-line" style="width: 60%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Subject Selection Modal -->
+    <div id="subject-modal" class="modal">
+        <div class="modal__content">
+            <button class="modal__close" id="modal-close">&times;</button>
+            <h2>Select a Subject</h2>
+            <div class="progress-grid" style="margin-top: var(--space-lg);">
+                <div class="progress-card" data-subject="maths">
+                    <div class="progress-card__subject">Maths</div>
+                </div>
+                <div class="progress-card" data-subject="english">
+                    <div class="progress-card__subject">English</div>
+                </div>
+                <div class="progress-card" data-subject="science">
+                    <div class="progress-card__subject">Science</div>
+                </div>
+                <div class="progress-card" data-subject="french">
+                    <div class="progress-card__subject">French</div>
+                </div>
+                <div class="progress-card" data-subject="finearts">
+                    <div class="progress-card__subject">Fine Arts</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.setAttribute('data-toggle-theme', 'true');
+
+        themeToggle.addEventListener('click', () => {
+            if (window.themeManager) {
+                window.themeManager.toggleTheme();
+            }
+        });
+
+        // Simulate Student State (Demo)
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFirstTime = urlParams.get('first-time') === 'true';
+        const firstTimeFlow = document.getElementById('first-time-flow');
+        const returningFlow = document.getElementById('returning-flow');
+
+        if (isFirstTime) {
+            firstTimeFlow.style.display = 'block';
+            returningFlow.style.display = 'none';
+        } else {
+            firstTimeFlow.style.display = 'none';
+            returningFlow.style.display = 'block';
+        }
+
+        // Modal Controls
+        const modal = document.getElementById('subject-modal');
+        const modalClose = document.getElementById('modal-close');
+        const startQuizBtn = document.getElementById('start-first-quiz-btn');
+        const subjectCards = document.querySelectorAll('[data-subject]');
+
+        startQuizBtn?.addEventListener('click', () => {
+            modal.classList.add('active');
+        });
+
+        modalClose.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+
+        subjectCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const subject = card.getAttribute('data-subject');
+                // In a real app, navigate to quiz page with selected subject
+                console.log('Selected subject:', subject);
+                modal.classList.remove('active');
+                // Simulate navigation
+                alert(`Starting quiz for ${subject}...`);
+            });
+
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    card.click();
+                }
+            });
+
+            // Make cards keyboard accessible
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+        });
+
+        // Logout
+        const logoutBtn = document.getElementById('logout-btn');
+        logoutBtn.addEventListener('click', () => {
+            // In a real app, call logout endpoint
+            alert('Logging out...');
+        });
+
+        // Set greeting date
+        const today = new Intl.DateTimeFormat('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+        }).format(new Date());
+        document.getElementById('greeting-date').textContent = `${today} — Let's keep your momentum going`;
+    </script>
+</body>
+</html>

@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz — Agentic AI Tutor</title>
+    <script src="theme-manager.js"></script>
+    <style>
+        /* ===== CSS Custom Properties: Color Palette ===== */
+        :root {
+            /* Light Mode (Default) */
+            --color-primary-green: oklch(0.48 0.16 140);
+            --color-accent-gold: oklch(0.56 0.13 60);
+            --color-bg: oklch(1.0 0.0 0);
+            --color-surface: oklch(0.97 0.0 0);
+            --color-ink: oklch(0.08 0.0 0);
+            --color-text-muted: oklch(0.55 0.0 0);
+            --color-border: oklch(0.88 0.0 0);
+            --color-success: oklch(0.58 0.15 142);
+            --color-warning: oklch(0.65 0.12 55);
+            --color-error: oklch(0.52 0.16 15);
+
+            /* Typography */
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            --font-size-label: 14px;
+            --font-size-body: 16px;
+            --font-size-title: 18px;
+            --font-size-headline: 24px;
+            --font-size-display: 32px;
+
+            --font-weight-regular: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+
+            --line-height-tight: 1.1;
+            --line-height-normal: 1.5;
+            --line-height-relaxed: 1.75;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+
+            /* Rounded Corners */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+
+            /* Z-Index */
+            --z-sticky: 200;
+            --z-modal-backdrop: 300;
+            --z-modal: 400;
+            --z-toast: 500;
+
+            /* Transitions */
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg: oklch(0.1 0.0 0);
+                --color-surface: oklch(0.15 0.0 0);
+                --color-ink: oklch(0.95 0.0 0);
+                --color-text-muted: oklch(0.7 0.0 0);
+                --color-border: oklch(0.25 0.0 0);
+            }
+        }
+
+        /* User-selected dark mode (overrides system preference) */
+        html[data-theme="dark"] {
+            --color-bg: oklch(0.1 0.0 0);
+            --color-surface: oklch(0.15 0.0 0);
+            --color-ink: oklch(0.95 0.0 0);
+            --color-text-muted: oklch(0.7 0.0 0);
+            --color-border: oklch(0.25 0.0 0);
+        }
+
+        /* User-selected light mode (overrides system preference) */
+        html[data-theme="light"] {
+            --color-bg: oklch(1.0 0.0 0);
+            --color-surface: oklch(0.97 0.0 0);
+            --color-ink: oklch(0.08 0.0 0);
+            --color-text-muted: oklch(0.55 0.0 0);
+            --color-border: oklch(0.88 0.0 0);
+        }
+
+        /* ===== Global Styles ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family);
+            font-size: var(--font-size-body);
+            line-height: var(--line-height-normal);
+            color: var(--color-ink);
+            background-color: var(--color-bg);
+        }
+
+        h1, h2, h3 {
+            font-weight: var(--font-weight-semibold);
+            line-height: var(--line-height-tight);
+            text-wrap: balance;
+        }
+
+        h1 {
+            font-size: var(--font-size-display);
+        }
+
+        h2 {
+            font-size: var(--font-size-headline);
+        }
+
+        h3 {
+            font-size: var(--font-size-title);
+        }
+
+        p {
+            margin-bottom: var(--space-md);
+        }
+
+        /* ===== Layout ===== */
+        .quiz-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--color-bg);
+        }
+
+        .quiz-header {
+            position: sticky;
+            top: 0;
+            z-index: var(--z-sticky);
+            background-color: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+            padding: var(--space-md);
+        }
+
+        .quiz-header__content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .progress-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .progress-meta {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--color-border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar__fill {
+            height: 100%;
+            background-color: var(--color-primary-green);
+            border-radius: 3px;
+        }
+
+        .timer {
+            font-size: var(--font-size-title);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-ink);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-md);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            min-width: 80px;
+            text-align: center;
+            transition: all var(--transition-fast);
+        }
+
+        .timer.warning {
+            background-color: var(--color-warning);
+            color: white;
+            border-color: var(--color-warning);
+        }
+
+        .timer.critical {
+            background-color: var(--color-error);
+            color: white;
+            border-color: var(--color-error);
+        }
+
+        .quiz-main {
+            flex: 1;
+            padding: var(--space-xl) var(--space-md);
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .quiz-footer {
+            padding: var(--space-lg) var(--space-md);
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+            position: sticky;
+            bottom: 0;
+            z-index: var(--z-sticky);
+        }
+
+        .quiz-footer__content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            gap: var(--space-md);
+            flex-wrap: wrap;
+        }
+
+        /* ===== Buttons ===== */
+        button {
+            font-family: var(--font-family);
+            font-size: var(--font-size-body);
+            font-weight: var(--font-weight-medium);
+            border: none;
+            border-radius: var(--radius-md);
+            padding: var(--space-md) var(--space-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary-green);
+            color: white;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:focus-visible {
+            outline: 3px solid var(--color-accent-gold);
+            outline-offset: 2px;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: var(--color-surface);
+            color: var(--color-ink);
+            border: 1px solid var(--color-border);
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            border-color: var(--color-primary-green);
+            background-color: var(--color-border);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-ghost {
+            background-color: transparent;
+            color: var(--color-primary-green);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-ghost:hover {
+            background-color: var(--color-surface);
+        }
+
+        .btn-small {
+            padding: var(--space-sm) var(--space-md);
+            font-size: var(--font-size-label);
+            min-height: 40px;
+        }
+
+        /* ===== Pre-Quiz Screen ===== */
+        .pre-quiz {
+            text-align: center;
+        }
+
+        .pre-quiz__header {
+            margin-bottom: var(--space-2xl);
+        }
+
+        .pre-quiz__title {
+            font-size: var(--font-size-display);
+            margin-bottom: var(--space-md);
+        }
+
+        .pre-quiz__subject {
+            font-size: var(--font-size-title);
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-lg);
+        }
+
+        .length-selector {
+            margin-bottom: var(--space-2xl);
+        }
+
+        .length-selector__label {
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: var(--space-md);
+            display: block;
+        }
+
+        .length-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .length-option {
+            background-color: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .length-option:hover {
+            border-color: var(--color-primary-green);
+        }
+
+        .length-option.selected {
+            border-color: var(--color-primary-green);
+            background-color: var(--color-primary-green);
+            color: white;
+        }
+
+        .length-option__count {
+            font-weight: var(--font-weight-bold);
+            font-size: var(--font-size-headline);
+            margin-bottom: var(--space-sm);
+        }
+
+        .length-option__time {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+        }
+
+        .length-option.selected .length-option__time {
+            color: white;
+        }
+
+        .pre-quiz__details {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-2xl);
+        }
+
+        .pre-quiz__detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--space-md);
+        }
+
+        .pre-quiz__detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ===== Question Display ===== */
+        .question-container {
+            margin-bottom: var(--space-2xl);
+        }
+
+        .question {
+            font-size: var(--font-size-headline);
+            line-height: var(--line-height-relaxed);
+            margin-bottom: var(--space-xl);
+        }
+
+        /* ===== Answer Options ===== */
+        .answer-options {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+            margin-bottom: var(--space-xl);
+        }
+
+        .answer-option {
+            background-color: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-md) var(--space-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            text-align: left;
+            font-size: var(--font-size-body);
+            font-weight: var(--font-weight-regular);
+            color: var(--color-ink);
+        }
+
+        .answer-option:hover {
+            border-color: var(--color-primary-green);
+        }
+
+        .answer-option.selected {
+            background-color: var(--color-primary-green);
+            color: white;
+            border-color: var(--color-primary-green);
+        }
+
+        /* True/False Layout */
+        .answer-options.tf-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-md);
+        }
+
+        .answer-options.tf-layout .answer-option {
+            padding: var(--space-lg);
+            text-align: center;
+            font-weight: var(--font-weight-semibold);
+        }
+
+        /* Short Answer Input */
+        .answer-input {
+            width: 100%;
+            padding: var(--space-md);
+            font-size: var(--font-size-body);
+            font-family: var(--font-family);
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background-color: var(--color-surface);
+            color: var(--color-ink);
+            transition: border-color var(--transition-fast);
+            min-height: 48px;
+            resize: vertical;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: var(--color-primary-green);
+        }
+
+        .answer-input::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        /* ===== Hints ===== */
+        .hint-section {
+            background-color: var(--color-warning);
+            opacity: 0.1;
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+            border: 1px solid var(--color-warning);
+        }
+
+        .hint-section.visible {
+            opacity: 1;
+            background-color: rgba(168, 142, 52, 0.1);
+        }
+
+        .hint-title {
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-warning);
+            margin-bottom: var(--space-md);
+        }
+
+        .hint-text {
+            color: var(--color-ink);
+            font-size: var(--font-size-body);
+            line-height: var(--line-height-relaxed);
+        }
+
+        /* ===== Results Screen ===== */
+        .results-container {
+            text-align: center;
+            margin-bottom: var(--space-2xl);
+        }
+
+        .results-score {
+            font-size: 72px;
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary-green);
+            margin-bottom: var(--space-md);
+        }
+
+        .results-summary {
+            font-size: var(--font-size-title);
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-lg);
+        }
+
+        .results-message {
+            font-size: var(--font-size-body);
+            margin-bottom: var(--space-xl);
+            padding: var(--space-lg);
+            background-color: var(--color-surface);
+            border-radius: var(--radius-md);
+            border-top: 2px solid var(--color-accent-gold);
+        }
+
+        .results-feedback {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        .feedback-item {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .feedback-question {
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: var(--space-md);
+            font-size: var(--font-size-body);
+        }
+
+        .feedback-answer {
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .feedback-label {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-xs);
+        }
+
+        .feedback-answer-text {
+            color: var(--color-ink);
+            font-size: var(--font-size-body);
+        }
+
+        .feedback-answer.correct .feedback-label {
+            color: var(--color-success);
+        }
+
+        .feedback-answer.incorrect .feedback-label {
+            color: var(--color-error);
+        }
+
+        .feedback-explanation {
+            background-color: rgba(72, 122, 88, 0.05);
+            padding: var(--space-md);
+            border-radius: var(--radius-sm);
+            border-left: 2px solid var(--color-primary-green);
+        }
+
+        .feedback-explanation-title {
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary-green);
+            margin-bottom: var(--space-sm);
+        }
+
+        .feedback-explanation-text {
+            color: var(--color-ink);
+            font-size: var(--font-size-body);
+            line-height: var(--line-height-relaxed);
+        }
+
+        /* ===== Toast Notifications ===== */
+        .toast {
+            position: fixed;
+            bottom: var(--space-lg);
+            right: var(--space-lg);
+            background-color: var(--color-success);
+            color: white;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            z-index: var(--z-toast);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* ===== Hidden Elements ===== */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ===== Accessibility ===== */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ===== Responsive Design ===== */
+        @media (max-width: 768px) {
+            .quiz-header__content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .progress-section {
+                width: 100%;
+            }
+
+            .timer {
+                width: 100%;
+            }
+
+            .quiz-main {
+                padding: var(--space-lg) var(--space-md);
+            }
+
+            .quiz-footer__content {
+                flex-direction: column;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+            }
+
+            .length-options {
+                grid-template-columns: 1fr;
+            }
+
+            .answer-options.tf-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .pre-quiz__title {
+                font-size: var(--font-size-headline);
+            }
+
+            .results-score {
+                font-size: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <!-- Top Header with Theme Toggle -->
+        <header style="position: sticky; top: 0; z-index: 250; background-color: var(--color-bg); border-bottom: 1px solid var(--color-border); padding: var(--space-md); display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="font-size: var(--font-size-title); margin: 0; font-weight: var(--font-weight-semibold);">🎓 Agentic Tutor</h1>
+            <div style="display: flex; gap: var(--space-md); align-items: center;">
+                <span style="font-size: var(--font-size-body); color: var(--color-ink);">Alex</span>
+                <button style="padding: var(--space-sm) var(--space-md); background-color: var(--color-surface); color: var(--color-primary-green); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-label); cursor: pointer; transition: all var(--transition-fast);" title="View profile">👤 Profile</button>
+                <button class="theme-toggle" id="quiz-theme-toggle" style="background: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; color: var(--color-ink); transition: all var(--transition-fast);" aria-label="Toggle dark mode">🌙</button>
+                <button style="padding: var(--space-sm) var(--space-md); background-color: var(--color-surface); color: var(--color-ink); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-label); cursor: pointer;">Logout</button>
+            </div>
+        </header>
+
+        <!-- Header with Progress -->
+        <header class="quiz-header hidden" id="quiz-header">
+            <div class="quiz-header__content">
+                <div class="progress-section">
+                    <div class="progress-meta">
+                        <span id="question-counter">Question 1 of 8</span>
+                        <span id="time-label">Time remaining</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-bar__fill" id="progress-fill" style="width: 12.5%;"></div>
+                    </div>
+                </div>
+                <div class="timer" id="timer">3:45</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="quiz-main">
+            <!-- Pre-Quiz Screen -->
+            <div id="pre-quiz" class="pre-quiz">
+                <div class="pre-quiz__header">
+                    <h1 class="pre-quiz__title" id="quiz-title">Biology Quiz</h1>
+                    <p class="pre-quiz__subject" id="quiz-subject">Photosynthesis & Cell Respiration</p>
+                </div>
+
+                <div class="length-selector">
+                    <label class="length-selector__label">How many questions?</label>
+                    <div class="length-options" id="length-options">
+                        <div class="length-option" data-length="5">
+                            <div class="length-option__count">5</div>
+                            <div class="length-option__time">~5 min</div>
+                        </div>
+                        <div class="length-option selected" data-length="8">
+                            <div class="length-option__count">8</div>
+                            <div class="length-option__time">~8 min</div>
+                        </div>
+                        <div class="length-option" data-length="12">
+                            <div class="length-option__count">12</div>
+                            <div class="length-option__time">~12 min</div>
+                        </div>
+                        <div class="length-option" data-length="15">
+                            <div class="length-option__count">15</div>
+                            <div class="length-option__time">~15 min</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pre-quiz__details">
+                    <div class="pre-quiz__detail-item">
+                        <span>Question Format</span>
+                        <span>Multiple Choice & Short Answer</span>
+                    </div>
+                    <div class="pre-quiz__detail-item">
+                        <span>Time per Question</span>
+                        <span>1 minute</span>
+                    </div>
+                    <div class="pre-quiz__detail-item">
+                        <span>Hints</span>
+                        <span>Available after wrong answer</span>
+                    </div>
+                    <div class="pre-quiz__detail-item">
+                        <span>Feedback</span>
+                        <span>Instant results with explanations</span>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="start-quiz-btn">Start Quiz</button>
+            </div>
+
+            <!-- Question Screen -->
+            <div id="question-screen" class="hidden">
+                <div class="question-container">
+                    <div class="question" id="question-text">
+                        What is the primary function of chlorophyll in photosynthesis?
+                    </div>
+
+                    <!-- Answer Options (Multiple Choice) -->
+                    <div class="answer-options" id="answer-options">
+                        <button class="answer-option" data-option="0">
+                            A) To break down glucose molecules
+                        </button>
+                        <button class="answer-option" data-option="1">
+                            B) To absorb light energy
+                        </button>
+                        <button class="answer-option" data-option="2">
+                            C) To produce oxygen only
+                        </button>
+                        <button class="answer-option" data-option="3">
+                            D) To transport water
+                        </button>
+                    </div>
+
+                    <!-- Hint Section (Hidden by default) -->
+                    <div class="hint-section" id="hint-section">
+                        <div class="hint-title">💡 Hint</div>
+                        <div class="hint-text" id="hint-text">
+                            Think about what happens when light hits the plant. What molecule helps capture that light energy?
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Screen -->
+            <div id="results-screen" class="hidden">
+                <div class="results-container">
+                    <div class="results-score" id="final-score">82%</div>
+                    <div class="results-summary" id="results-summary">
+                        You scored 82% — improved 5% from last time
+                    </div>
+                    <div class="results-message">
+                        <strong>Great effort!</strong> You demonstrated strong understanding of photosynthesis. Focus on cell respiration concepts for your next session.
+                    </div>
+                </div>
+
+                <div class="results-feedback" id="feedback-list">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer with Navigation -->
+        <footer class="quiz-footer hidden" id="quiz-footer">
+            <div class="quiz-footer__content">
+                <button class="btn-secondary" id="previous-btn">← Previous</button>
+                <button class="btn-secondary btn-ghost btn-small" id="hint-btn">💡 Hint</button>
+                <button class="btn-primary" id="submit-btn">Submit Answer</button>
+                <button class="btn-secondary" id="next-btn" style="display: none;">Next →</button>
+            </div>
+        </footer>
+
+        <!-- Results Footer -->
+        <footer class="quiz-footer hidden" id="results-footer">
+            <div class="quiz-footer__content">
+                <button class="btn-secondary" id="review-btn">Review Quiz</button>
+                <button class="btn-primary" id="another-btn">Try Another</button>
+                <button class="btn-secondary" id="dashboard-btn">Back to Dashboard</button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // ===== State Management =====
+        const quizState = {
+            currentQuestion: 0,
+            totalQuestions: 8,
+            selectedLength: 8,
+            answers: [],
+            hints: [],
+            submitted: false,
+            timeRemaining: 8 * 60, // 1 minute per question
+            timerInterval: null,
+            questions: [
+                {
+                    text: "What is the primary function of chlorophyll in photosynthesis?",
+                    type: "multiple-choice",
+                    options: [
+                        "To break down glucose molecules",
+                        "To absorb light energy",
+                        "To produce oxygen only",
+                        "To transport water"
+                    ],
+                    correct: 1,
+                    explanation: "Chlorophyll absorbs light energy in the light-dependent reactions of photosynthesis. This energy is used to create ATP and NADPH, which are then used in the Calvin cycle to produce glucose."
+                },
+                {
+                    text: "Which organelle is responsible for cellular respiration?",
+                    type: "multiple-choice",
+                    options: [
+                        "Mitochondria",
+                        "Chloroplast",
+                        "Ribosome",
+                        "Golgi apparatus"
+                    ],
+                    correct: 0,
+                    explanation: "The mitochondria is known as the powerhouse of the cell. It performs aerobic respiration, breaking down glucose to produce ATP energy for the cell."
+                },
+                {
+                    text: "Is photosynthesis an endothermic or exothermic process?",
+                    type: "true-false",
+                    options: ["Endothermic", "Exothermic"],
+                    correct: 0,
+                    explanation: "Photosynthesis is endothermic because it requires energy input from sunlight to convert CO₂ and water into glucose and oxygen."
+                },
+                {
+                    text: "What is the formula for photosynthesis?",
+                    type: "short-answer",
+                    correct: "6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂",
+                    explanation: "This is the balanced equation for photosynthesis. Six molecules of CO₂ and six molecules of water, with light energy, produce one glucose molecule and six oxygen molecules."
+                },
+                {
+                    text: "In the Calvin cycle, what is the primary purpose of ATP?",
+                    type: "multiple-choice",
+                    options: [
+                        "To provide energy for carbon fixation",
+                        "To absorb light",
+                        "To produce chlorophyll",
+                        "To transport glucose"
+                    ],
+                    correct: 0,
+                    explanation: "ATP (adenosine triphosphate) provides the energy needed for the Calvin cycle to fix CO₂ into organic molecules and reduce them into glucose."
+                },
+                {
+                    text: "The light-dependent reactions occur in which part of the chloroplast?",
+                    type: "multiple-choice",
+                    options: [
+                        "Stroma",
+                        "Thylakoid membrane",
+                        "Chloroplast envelope",
+                        "Plastid"
+                    ],
+                    correct: 1,
+                    explanation: "The light-dependent reactions take place in the thylakoid membrane of the chloroplast, where photosystem II and I are located to capture light energy."
+                },
+                {
+                    text: "Does the Calvin cycle require light directly?",
+                    type: "true-false",
+                    options: ["Yes", "No"],
+                    correct: 1,
+                    explanation: "No, the Calvin cycle (light-independent reactions) does not require light directly. However, it does require ATP and NADPH produced during the light-dependent reactions."
+                },
+                {
+                    text: "Briefly explain the difference between photosynthesis and cellular respiration.",
+                    type: "short-answer",
+                    correct: "Photosynthesis uses light energy to create glucose; respiration breaks down glucose to release energy",
+                    explanation: "Photosynthesis is an anabolic process that stores energy in glucose using sunlight, while cellular respiration is a catabolic process that releases energy from glucose for cellular use."
+                }
+            ]
+        };
+
+        // ===== DOM Elements =====
+        const preQuizScreen = document.getElementById('pre-quiz');
+        const questionScreen = document.getElementById('question-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const quizHeader = document.getElementById('quiz-header');
+        const quizFooter = document.getElementById('quiz-footer');
+        const resultsFooter = document.getElementById('results-footer');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+        const lengthOptions = document.querySelectorAll('.length-option');
+        const questionText = document.getElementById('question-text');
+        const answerOptions = document.getElementById('answer-options');
+        const answerInput = document.getElementById('answer-input');
+        const questionCounter = document.getElementById('question-counter');
+        const progressFill = document.getElementById('progress-fill');
+        const timer = document.getElementById('timer');
+        const hintBtn = document.getElementById('hint-btn');
+        const hintSection = document.getElementById('hint-section');
+        const hintText = document.getElementById('hint-text');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const previousBtn = document.getElementById('previous-btn');
+        const feedbackList = document.getElementById('feedback-list');
+        const finalScore = document.getElementById('final-score');
+        const resultsSummary = document.getElementById('results-summary');
+        const anotherBtn = document.getElementById('another-btn');
+        const dashboardBtn = document.getElementById('dashboard-btn');
+
+        // ===== Quiz Logic =====
+        lengthOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                lengthOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                quizState.selectedLength = parseInt(option.dataset.length);
+                quizState.totalQuestions = quizState.selectedLength;
+            });
+        });
+
+        startQuizBtn.addEventListener('click', () => {
+            quizState.totalQuestions = quizState.selectedLength;
+            quizState.answers = new Array(quizState.questions.length).fill(null);
+            quizState.hints = new Array(quizState.questions.length).fill(false);
+            preQuizScreen.classList.add('hidden');
+            quizHeader.classList.remove('hidden');
+            quizFooter.classList.remove('hidden');
+            startTimer();
+            loadQuestion();
+        });
+
+        function loadQuestion() {
+            const q = quizState.questions[quizState.currentQuestion];
+            questionText.textContent = q.text;
+            hintSection.classList.remove('visible');
+            hintText.textContent = ""; // Would be populated by backend
+            questionScreen.classList.remove('hidden');
+            resultsScreen.classList.add('hidden');
+            resultsFooter.classList.add('hidden');
+
+            // Clear previous options
+            answerOptions.innerHTML = '';
+            answerOptions.className = 'answer-options';
+
+            if (q.type === 'multiple-choice') {
+                q.options.forEach((option, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'answer-option';
+                    btn.textContent = option;
+                    btn.dataset.option = index;
+                    btn.addEventListener('click', () => selectAnswer(index));
+                    if (quizState.answers[quizState.currentQuestion] === index) {
+                        btn.classList.add('selected');
+                    }
+                    answerOptions.appendChild(btn);
+                });
+            } else if (q.type === 'true-false') {
+                answerOptions.classList.add('tf-layout');
+                q.options.forEach((option, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'answer-option';
+                    btn.textContent = option;
+                    btn.dataset.option = index;
+                    btn.addEventListener('click', () => selectAnswer(index));
+                    if (quizState.answers[quizState.currentQuestion] === index) {
+                        btn.classList.add('selected');
+                    }
+                    answerOptions.appendChild(btn);
+                });
+            } else if (q.type === 'short-answer') {
+                const input = document.createElement('textarea');
+                input.className = 'answer-input';
+                input.placeholder = 'Type your answer here...';
+                input.value = quizState.answers[quizState.currentQuestion] || '';
+                input.addEventListener('input', (e) => {
+                    quizState.answers[quizState.currentQuestion] = e.target.value;
+                });
+                answerOptions.appendChild(input);
+            }
+
+            updateProgress();
+            updateNavigationButtons();
+        }
+
+        function selectAnswer(index) {
+            quizState.answers[quizState.currentQuestion] = index;
+            document.querySelectorAll('.answer-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector(`[data-option="${index}"]`)?.classList.add('selected');
+        }
+
+        hintBtn.addEventListener('click', () => {
+            quizState.hints[quizState.currentQuestion] = true;
+            hintSection.classList.add('visible');
+            showToast('Hint revealed');
+        });
+
+        submitBtn.addEventListener('click', () => {
+            if (quizState.answers[quizState.currentQuestion] === null) {
+                showToast('Please select an answer');
+                return;
+            }
+
+            const q = quizState.questions[quizState.currentQuestion];
+            const isCorrect = quizState.answers[quizState.currentQuestion] === q.correct;
+
+            if (!isCorrect && !quizState.hints[quizState.currentQuestion]) {
+                hintSection.classList.add('visible');
+                showToast('Incorrect. Here\'s a hint!');
+                return;
+            }
+
+            quizState.submitted = true;
+            nextBtn.style.display = 'flex';
+            submitBtn.style.display = 'none';
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (quizState.currentQuestion < quizState.questions.length - 1) {
+                quizState.currentQuestion++;
+                quizState.submitted = false;
+                nextBtn.style.display = 'none';
+                submitBtn.style.display = 'flex';
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        });
+
+        previousBtn.addEventListener('click', () => {
+            if (quizState.currentQuestion > 0) {
+                quizState.currentQuestion--;
+                quizState.submitted = false;
+                nextBtn.style.display = 'none';
+                submitBtn.style.display = 'flex';
+                loadQuestion();
+            }
+        });
+
+        function updateProgress() {
+            const progress = ((quizState.currentQuestion + 1) / quizState.questions.length) * 100;
+            progressFill.style.width = progress + '%';
+            questionCounter.textContent = `Question ${quizState.currentQuestion + 1} of ${quizState.questions.length}`;
+        }
+
+        function updateNavigationButtons() {
+            previousBtn.disabled = quizState.currentQuestion === 0;
+            if (quizState.submitted) {
+                nextBtn.style.display = 'flex';
+                submitBtn.style.display = 'none';
+            }
+        }
+
+        function startTimer() {
+            quizState.timerInterval = setInterval(() => {
+                quizState.timeRemaining--;
+                updateTimer();
+
+                if (quizState.timeRemaining <= 0) {
+                    clearInterval(quizState.timerInterval);
+                    submitAnswer();
+                }
+            }, 1000);
+        }
+
+        function updateTimer() {
+            const minutes = Math.floor(quizState.timeRemaining / 60);
+            const seconds = quizState.timeRemaining % 60;
+            timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            // Change color based on time remaining
+            timer.classList.remove('warning', 'critical');
+            if (quizState.timeRemaining <= 10) {
+                timer.classList.add('critical');
+            } else if (quizState.timeRemaining <= 30) {
+                timer.classList.add('warning');
+            }
+        }
+
+        function submitAnswer() {
+            if (quizState.answers[quizState.currentQuestion] !== null) {
+                quizState.submitted = true;
+                nextBtn.style.display = 'flex';
+                submitBtn.style.display = 'none';
+            }
+        }
+
+        function showResults() {
+            clearInterval(quizState.timerInterval);
+            quizHeader.classList.add('hidden');
+            quizFooter.classList.add('hidden');
+            questionScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+            resultsFooter.classList.remove('hidden');
+
+            // Calculate score
+            let correctCount = 0;
+            quizState.answers.forEach((answer, idx) => {
+                if (answer === quizState.questions[idx].correct) {
+                    correctCount++;
+                }
+            });
+            const score = Math.round((correctCount / quizState.questions.length) * 100);
+            finalScore.textContent = score + '%';
+            resultsSummary.textContent = `You scored ${score}% — improved 5% from last time`;
+
+            // Generate feedback
+            feedbackList.innerHTML = '';
+            quizState.questions.slice(0, quizState.selectedLength).forEach((q, idx) => {
+                const isCorrect = quizState.answers[idx] === q.correct;
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.className = 'feedback-item';
+
+                let answerText = '';
+                if (q.type === 'short-answer') {
+                    answerText = quizState.answers[idx] || '(No answer)';
+                } else {
+                    answerText = q.options[quizState.answers[idx]] || '(No answer)';
+                }
+
+                feedbackDiv.innerHTML = `
+                    <div class="feedback-question">Question ${idx + 1} of ${quizState.selectedLength}</div>
+                    <div class="feedback-answer ${isCorrect ? 'correct' : 'incorrect'}">
+                        <div class="feedback-label">${isCorrect ? '✓ Correct' : '✗ Incorrect'}</div>
+                        <div class="feedback-answer-text">${answerText}</div>
+                        ${!isCorrect ? `<div class="feedback-answer-text" style="margin-top: var(--space-sm); color: var(--color-success);">Correct: ${q.options[q.correct] || q.correct}</div>` : ''}
+                    </div>
+                    <div class="feedback-explanation">
+                        <div class="feedback-explanation-title">Why?</div>
+                        <div class="feedback-explanation-text">${q.explanation}</div>
+                    </div>
+                `;
+                feedbackList.appendChild(feedbackDiv);
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        anotherBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
+
+        dashboardBtn.addEventListener('click', () => {
+            alert('Returning to dashboard...');
+        });
+
+        reviewBtn?.addEventListener('click', () => {
+            window.location.reload();
+        });
+
+        // Theme Toggle - Quiz Interface
+        const quizThemeToggle = document.getElementById('quiz-theme-toggle');
+        if (quizThemeToggle) {
+            quizThemeToggle.addEventListener('click', () => {
+                // Try to use themeManager if available
+                if (window.themeManager) {
+                    window.themeManager.toggleTheme();
+                } else {
+                    // Fallback: toggle theme directly
+                    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('agentic-tutor-theme', newTheme);
+                    quizThemeToggle.textContent = newTheme === 'light' ? '🌙' : '☀️';
+                    // Also update other theme toggles if they exist
+                    document.querySelectorAll('[data-toggle-theme]').forEach(btn => {
+                        btn.textContent = newTheme === 'light' ? '🌙' : '☀️';
+                    });
+                }
+            });
+
+            // Initialize theme button on page load
+            const savedTheme = localStorage.getItem('agentic-tutor-theme');
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (systemDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            quizThemeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
+        }
+    </script>
+</body>
+</html>
