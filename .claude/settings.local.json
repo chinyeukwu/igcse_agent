@@ -19,7 +19,14 @@
       "PowerShell(& \".\\\\mytutor\\\\Scripts\\\\python.exe\" -m pip install --upgrade pdfplumber pypdf -q)",
       "PowerShell(& \".\\\\mytutor\\\\Scripts\\\\python.exe\" \"C:\\\\projects\\\\agenticaitutor\\\\src\\\\papers\\\\reference_manager.py\")",
       "PowerShell(\\(Get-Content \"C:\\\\projects\\\\agenticaitutor\\\\src\\\\main.py\" | Measure-Object -Line\\).Lines)",
-      "PowerShell(C:\\\\projects\\\\agenticaitutor\\\\mytutor\\\\Scripts\\\\python.exe -m py_compile C:\\\\projects\\\\agenticaitutor\\\\src\\\\main.py)"
+      "PowerShell(C:\\\\projects\\\\agenticaitutor\\\\mytutor\\\\Scripts\\\\python.exe -m py_compile C:\\\\projects\\\\agenticaitutor\\\\src\\\\main.py)",
+      "PowerShell(Start-Sleep -Seconds 3; $response = Invoke-WebRequest -Uri \"http://localhost:8000/health\" -ErrorAction SilentlyContinue; if \\($response.StatusCode -eq 200\\) { \"✅ Server running\"; $response.Content } else { \"❌ Server not ready\" })",
+      "PowerShell(C:\\\\projects\\\\agenticaitutor\\\\mytutor\\\\Scripts\\\\python.exe -c \"import src.main; print\\('Import successful'\\)\" 2>&1)",
+      "PowerShell(C:\\\\projects\\\\agenticaitutor\\\\mytutor\\\\Scripts\\\\python.exe -m uvicorn src.main:app --host 127.0.0.1 --port 8000 2>&1 | Select-Object -First 50)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Start-Sleep -Seconds 4; curl.exe -s http://127.0.0.1:8001/health 2>&1)",
+      "PowerShell(curl.exe -s http://127.0.0.1:8001/dashboard -H \"Accept: text/html\" 2>&1 | Select-Object -First 5)",
+      "PowerShell(curl.exe -s -X GET \"http://127.0.0.1:8001/notifications/preferences\" -H \"Authorization: Bearer test-token\" 2>&1)"
     ]
   }
 }

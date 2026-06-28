@@ -10,7 +10,7 @@ from typing import List, Dict, Optional
 from sqlalchemy.orm import Session as DBSession
 
 from src.database.models import PaperQuestion
-from src.papers.reference_manager import PaperMetadata
+from src.papers.reference_manager import PaperReference
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +154,7 @@ class PearsonQuestionExtractor:
         for subject, papers in manager.get_all_papers_by_subject().items():
             for paper in papers:
                 try:
-                    metadata = PaperMetadata.extract_from_filename(paper["filename"])
+                    metadata = PaperReference.extract_from_filename(paper["filename"])
 
                     if create_placeholders:
                         # Create placeholder questions that can be manually filled in later

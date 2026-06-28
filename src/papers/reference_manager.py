@@ -45,6 +45,22 @@ class PaperReference:
             "date": self.date,
         }
 
+    @staticmethod
+    def extract_from_filename(filename: str) -> Dict:
+        """Extract metadata from filename format."""
+        import re
+        # Expected format: 4ma1_r_ms12_20101h_final.pdf or similar
+        match = re.search(r'(\d[a-z]{2,3}\d)_.*?_?(\d+)?', filename.lower())
+        if match:
+            paper_code = match.group(1)
+            paper_number = int(match.group(2)) if match.group(2) else 1
+            return {
+                "paper_code": paper_code,
+                "paper_number": paper_number,
+                "is_marking_scheme": "ms" in filename.lower() or "scheme" in filename.lower(),
+            }
+        return {"paper_code": "unknown", "paper_number": 1, "is_marking_scheme": False}
+
 
 class PaperReferenceManager:
     """Manages references to Pearson exam papers."""
