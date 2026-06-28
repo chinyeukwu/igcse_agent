@@ -11,6 +11,7 @@ import logging
 import os
 from typing import List, Dict, Any, Tuple
 from anthropic import Anthropic
+from src.papers.reference_manager import PaperReferenceManager
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +24,10 @@ class QuizGenerator:
     VALID_DIFFICULTIES = ["easy", "medium", "hard"]
     VALID_QUESTION_COUNTS = [3, 5, 10]
 
-    # Initialize Claude client
+    # Initialize Claude client and paper manager
     _client = None
     _edexcel_examples = None
+    _paper_manager = None
 
     @classmethod
     def get_client(cls):
@@ -55,6 +57,27 @@ class QuizGenerator:
                 logger.warning(f"Could not load Edexcel examples: {str(e)}")
                 cls._edexcel_examples = {}
         return cls._edexcel_examples
+
+    @classmethod
+    def get_paper_manager(cls) -> PaperReferenceManager:
+        """Lazy-load paper reference manager."""
+        if cls._paper_manager is None:
+            cls._paper_manager = PaperReferenceManager()
+            # Load cached index if available, otherwise scan directory
+            index_path = os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "..",
+                "data",
+                "paper_index.json"
+            )
+            if os.path.exists(index_path):
+                cls._paper_manager.load_index(index_path)
+                logger.info("Loaded paper index from cache")
+            else:
+                cls._paper_manager.scan_directory()
+                logger.info("Scanned papers directory")
+        return cls._paper_manager
 
     # Quiz prompts per subject
     SUBJECT_PROMPTS = {
@@ -342,11 +365,17 @@ Difficulty: {difficulty}
             examples = cls.load_edexcel_examples()
             edexcel_examples_text = cls._build_edexcel_examples_prompt(subject_lower, examples)
 
-            # Build system prompt with Edexcel examples (for caching)
+            # Load Pearson papers context
+            paper_manager = cls.get_paper_manager()
+            papers_context = paper_manager.get_context_for_quiz_generation(subject.title())
+
+            # Build system prompt with Edexcel examples and Pearson papers (for caching)
             system_prompt = f"""You are an expert IGCSE quiz generator specializing in Edexcel exam patterns.
 Your role is to generate high-quality quiz questions that closely match Edexcel IGCSE exam standards.
 
 {edexcel_examples_text}
+
+{papers_context}
 
 ## Guidelines for {subject.title()} Questions
 - Match Edexcel's difficulty progression and question styles
@@ -355,6 +384,8 @@ Your role is to generate high-quality quiz questions that closely match Edexcel 
 - Provide clear, concise explanations for answers
 - For Maths: Always include step-by-step workings
 - For English: Emphasize textual analysis and critical thinking
+- Base questions on patterns observed in Pearson past papers
+- Ensure questions are similar in style and difficulty to the provided papers
 - Avoid trick questions; test genuine understanding"""
 
             # Build user prompt (dynamic, not cached)
