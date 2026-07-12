@@ -51,26 +51,50 @@ def clean_response(text: str) -> str:
     if not text:
         return text
 
+    # Remove LaTeX inline math: \( ... \)
+    text = re.sub(r'\\\(\s*(.*?)\s*\\\)', r'\1', text, flags=re.DOTALL)
+
     # Remove LaTeX display math: \[ ... \]
     text = re.sub(r'\\\[\s*(.*?)\s*\\\]', r'\1', text, flags=re.DOTALL)
 
-    # Remove LaTeX inline math: $ ... $
+    # Remove LaTeX inline math: $ ... $ (single $)
     text = re.sub(r'\$\s*(.*?)\s*\$', r'\1', text, flags=re.DOTALL)
+
+    # Remove LaTeX display math: $$ ... $$
+    text = re.sub(r'\$\$\s*(.*?)\s*\$\$', r'\1', text, flags=re.DOTALL)
 
     # Remove \text{...} commands, keeping content
     text = re.sub(r'\\text\{([^}]*)\}', r'\1', text)
 
+    # Remove \mathrm{...} and similar commands, keeping content
+    text = re.sub(r'\\mathrm\{([^}]*)\}', r'\1', text)
+    text = re.sub(r'\\mathbf\{([^}]*)\}', r'\1', text)
+    text = re.sub(r'\\mathit\{([^}]*)\}', r'\1', text)
+
     # Replace LaTeX symbols with Unicode equivalents
     replacements = {
         r'\\rightarrow': '→',
+        r'\\leftarrow': '←',
+        r'\\leftrightarrow': '↔',
+        r'\\Rightarrow': '⇒',
+        r'\\Leftarrow': '⇐',
         r'\\approx': '≈',
         r'\\times': '×',
+        r'\\cdot': '·',
         r'\\div': '÷',
         r'\\pm': '±',
+        r'\\mp': '∓',
         r'\\geq': '≥',
         r'\\leq': '≤',
         r'\\ne': '≠',
+        r'\\equiv': '≡',
         r'\\infty': '∞',
+        r'\\alpha': 'α',
+        r'\\beta': 'β',
+        r'\\gamma': 'γ',
+        r'\\delta': 'δ',
+        r'\\theta': 'θ',
+        r'\\pi': 'π',
     }
     for latex, unicode_char in replacements.items():
         text = re.sub(latex, unicode_char, text)
@@ -78,8 +102,14 @@ def clean_response(text: str) -> str:
     # Remove \sqrt{...} but keep content
     text = re.sub(r'\\sqrt\{([^}]*)\}', r'√(\1)', text)
 
-    # Remove remaining LaTeX commands
+    # Remove \frac{...}{...} and simplify
+    text = re.sub(r'\\frac\{([^}]*)\}\{([^}]*)\}', r'\1/\2', text)
+
+    # Remove remaining LaTeX commands (anything starting with backslash)
     text = re.sub(r'\\[a-zA-Z_]+(\{[^}]*\})?', '', text)
+
+    # Remove remaining curly braces that may be left from LaTeX
+    text = re.sub(r'[{}]', '', text)
 
     # Clean excessive whitespace
     text = re.sub(r'\n\s*\n', '\n\n', text)
