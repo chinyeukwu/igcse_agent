@@ -381,14 +381,6 @@ async def quiz_page():
         return FileResponse(quiz_file)
     return HTMLResponse("<h1>Quiz Interface Not Found</h1>", status_code=404)
 
-@app.get("/chat", response_class=HTMLResponse)
-async def chat_page():
-    """Serve the chat interface."""
-    chat_file = frontend_path / "chat_interface.html"
-    if chat_file.exists():
-        return FileResponse(chat_file)
-    return HTMLResponse("<h1>Chat Interface Not Found</h1>", status_code=404)
-
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page():
     """Serve the student dashboard."""
