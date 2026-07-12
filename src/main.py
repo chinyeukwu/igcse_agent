@@ -8,6 +8,7 @@ import logging
 import sys
 import os
 import time
+import re
 from typing import Optional
 from contextlib import asynccontextmanager
 
@@ -43,6 +44,49 @@ from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyPro
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def clean_response(text: str) -> str:
+    """Clean LaTeX notation and unwanted characters from responses."""
+    if not text:
+        return text
+
+    # Remove LaTeX display math: \[ ... \]
+    text = re.sub(r'\\\[\s*(.*?)\s*\\\]', r'\1', text, flags=re.DOTALL)
+
+    # Remove LaTeX inline math: $ ... $
+    text = re.sub(r'\$\s*(.*?)\s*\$', r'\1', text, flags=re.DOTALL)
+
+    # Remove \text{...} commands, keeping content
+    text = re.sub(r'\\text\{([^}]*)\}', r'\1', text)
+
+    # Replace LaTeX symbols with Unicode equivalents
+    replacements = {
+        r'\\rightarrow': '→',
+        r'\\approx': '≈',
+        r'\\times': '×',
+        r'\\div': '÷',
+        r'\\pm': '±',
+        r'\\geq': '≥',
+        r'\\leq': '≤',
+        r'\\ne': '≠',
+        r'\\infty': '∞',
+    }
+    for latex, unicode_char in replacements.items():
+        text = re.sub(latex, unicode_char, text)
+
+    # Remove \sqrt{...} but keep content
+    text = re.sub(r'\\sqrt\{([^}]*)\}', r'√(\1)', text)
+
+    # Remove remaining LaTeX commands
+    text = re.sub(r'\\[a-zA-Z_]+(\{[^}]*\})?', '', text)
+
+    # Clean excessive whitespace
+    text = re.sub(r'\n\s*\n', '\n\n', text)
+    text = re.sub(r' +', ' ', text)
+
+    return text.strip()
+
 
 # ===== Request/Response Models =====
 
@@ -654,9 +698,12 @@ async def process_query(
         output = await asyncio.to_thread(agent.invoke, initial_state)
 
         response = output["messages"][-1].content
-        
+
+        # Clean LaTeX notation from response
+        response = clean_response(response)
+
         # ===== PHASE 2: RESPONSE VALIDATION =====
-        
+
         # Validate response for security issues
         is_valid_response, response_error = ResponseValidator.validate_response(response, subject=subject)
         
@@ -800,10 +847,11 @@ async def api_query(input_data: QueryInput):
             if cached_response:
                 # Handle both string and dict responses
                 cached_text = cached_response.get("response") if isinstance(cached_response, dict) else cached_response
+                cached_text = clean_response(cached_text) if cached_text else "Unable to generate response"
                 return JSONResponse(
                     status_code=status.HTTP_200_OK,
                     content={
-                        "response": cached_text or "Unable to generate response",
+                        "response": cached_text,
                         "cached": True,
                     }
                 )
@@ -811,6 +859,7 @@ async def api_query(input_data: QueryInput):
         # Generate new response using orchestrator routing
         try:
             from src.agents.orchestrator import route_query
+import re
 
             response = await asyncio.to_thread(route_query, query)
             logger.debug(f"Raw agent response type: {type(response)}")
@@ -837,6 +886,9 @@ async def api_query(input_data: QueryInput):
                     answer = str(response)
             else:
                 answer = str(response)
+
+            # Clean response to remove LaTeX notation
+            answer = clean_response(answer)
 
             # Cache the response if online
             if is_online:
