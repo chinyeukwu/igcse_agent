@@ -1575,26 +1575,36 @@
             });
         }
 
-        // Show appropriate flow (returning student by default)
-        const hasQuizHistory = true; // In real app, check from API
-        const returningFlow = document.getElementById('returning-flow');
-        const firstTimeFlow = document.getElementById('first-time-flow');
+        // Initialize dashboard - show content
+        function initializeDashboard() {
+            // Show appropriate flow (returning student by default)
+            const hasQuizHistory = true; // In real app, check from API
+            const returningFlow = document.getElementById('returning-flow');
+            const firstTimeFlow = document.getElementById('first-time-flow');
 
-        if (hasQuizHistory && returningFlow) {
-            returningFlow.style.display = 'block';
-            if (firstTimeFlow) firstTimeFlow.style.display = 'none';
-        } else if (firstTimeFlow) {
-            firstTimeFlow.style.display = 'block';
-            if (returningFlow) returningFlow.style.display = 'none';
+            if (hasQuizHistory && returningFlow) {
+                returningFlow.style.display = 'block';
+                if (firstTimeFlow) firstTimeFlow.style.display = 'none';
+            } else if (firstTimeFlow) {
+                firstTimeFlow.style.display = 'block';
+                if (returningFlow) returningFlow.style.display = 'none';
+            }
+
+            // Set greeting date
+            const today = new Intl.DateTimeFormat('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+            }).format(new Date());
+            const greetingDateEl = document.getElementById('greeting-date');
+            if (greetingDateEl) {
+                greetingDateEl.textContent = `${today} — Let's keep your momentum going`;
+            }
         }
 
-        // Set greeting date
-        const today = new Intl.DateTimeFormat('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric'
-        }).format(new Date());
-        document.getElementById('greeting-date').textContent = `${today} — Let's keep your momentum going`;
+        // Run initialization immediately and also on DOMContentLoaded
+        initializeDashboard();
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
     </script>
 </body>
 </html>
