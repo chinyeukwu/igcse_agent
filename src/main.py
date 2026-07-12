@@ -381,6 +381,14 @@ async def quiz_page():
         return FileResponse(quiz_file)
     return HTMLResponse("<h1>Quiz Interface Not Found</h1>", status_code=404)
 
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page():
+    """Serve the chat interface."""
+    chat_file = frontend_path / "chat_interface.html"
+    if chat_file.exists():
+        return FileResponse(chat_file)
+    return HTMLResponse("<h1>Chat Interface Not Found</h1>", status_code=404)
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page():
     """Serve the student dashboard."""
@@ -760,6 +768,112 @@ async def process_query(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while processing your query",
+        )
+
+@app.post("/api/query", status_code=status.HTTP_200_OK)
+async def api_query(input_data: QueryInput):
+    """
+    Public API endpoint for chat interface queries.
+    Does not require authentication for basic chat functionality.
+    """
+    try:
+        db_session = get_session()
+        query = input_data.query
+
+        # Note: Validation is handled by the agent itself
+        # Remove strict scope checking to allow the agent to handle subject validation
+
+        # Extract subject
+        subject = InputValidator.extract_subject(query)
+
+        # Check connectivity
+        is_online, status_msg = StatusDetector.check_with_fallback()
+
+        # Try to get cached response first
+        if is_online:
+            cached_response = CacheManager.get_cached_response(
+                db_session,
+                query=query,
+                subject=subject or "unknown",
+                language_code="en"
+            )
+            if cached_response:
+                # Handle both string and dict responses
+                cached_text = cached_response.get("response") if isinstance(cached_response, dict) else cached_response
+                return JSONResponse(
+                    status_code=status.HTTP_200_OK,
+                    content={
+                        "response": cached_text or "Unable to generate response",
+                        "cached": True,
+                    }
+                )
+
+        # Generate new response using orchestrator routing
+        try:
+            from src.agents.orchestrator import route_query
+
+            response = await asyncio.to_thread(route_query, query)
+            logger.debug(f"Raw agent response type: {type(response)}")
+            logger.debug(f"Raw agent response: {response}")
+
+            # Extract answer from agent response
+            answer = "Unable to generate response"
+
+            if isinstance(response, dict):
+                # Check if response has 'messages' (from LangChain agent)
+                if "messages" in response and isinstance(response["messages"], list):
+                    # Get the last message (should be the final AI response)
+                    messages = response["messages"]
+                    if messages:
+                        last_msg = messages[-1]
+                        if hasattr(last_msg, 'content'):
+                            answer = last_msg.content
+                        elif isinstance(last_msg, dict) and 'content' in last_msg:
+                            answer = last_msg['content']
+                # Check if response has 'output' key
+                elif "output" in response:
+                    answer = response["output"]
+                else:
+                    answer = str(response)
+            else:
+                answer = str(response)
+
+            # Cache the response if online
+            if is_online:
+                CacheManager.cache_response(
+                    db_session,
+                    query=query,
+                    response=answer,
+                    subject=subject or "unknown",
+                    language_code="en"
+                )
+
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={
+                    "response": answer,
+                    "cached": False,
+                }
+            )
+        except Exception as agent_error:
+            logger.error(f"Agent error in API query: {str(agent_error)}", exc_info=True)
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={
+                    "response": f"Error: {str(agent_error)[:200]}",
+                    "cached": False,
+                }
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"API query error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing query: {str(e)[:100]}",
         )
 
 # ===== Offline & Sync Endpoints =====

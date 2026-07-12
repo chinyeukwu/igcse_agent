@@ -69,7 +69,7 @@ def create_llm() -> ChatOpenAI | None:
             raise ValueError("OPENAI_API_KEY environment variable is not set.")
 
         _llm_instance = ChatOpenAI(
-            model="gpt-4",
+            model="gpt-4o-mini",
             temperature=0,
             api_key=SecretStr(config.openai_key),
             timeout=30,

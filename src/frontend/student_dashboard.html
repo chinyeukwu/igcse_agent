@@ -1187,7 +1187,7 @@
                         <p class="hero__subtitle">Jump into your next quiz or ask the AI tutor a question</p>
                         <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;">
                             <button class="btn-primary">Start a Quiz</button>
-                            <button class="btn-secondary">Chat with Tutor</button>
+                            <button class="btn-secondary" id="chat-btn">Chat with Tutor</button>
                         </div>
                     </div>
                 </div>
@@ -1498,6 +1498,14 @@
                 alert('Error logging out. Please check console.');
             }
         });
+
+        // Chat with Tutor button - Redirect to chat interface
+        const chatBtn = document.getElementById('chat-btn');
+        if (chatBtn) {
+            chatBtn.addEventListener('click', () => {
+                window.location.href = '/chat';
+            });
+        }
 
         // Set greeting date
         const today = new Intl.DateTimeFormat('en-US', {
