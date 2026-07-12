@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - IGCSE Tutor</title>
+    <script src="/static/theme-manager.js"></script>
+    <style>
+        :root {
+            --color-primary-green: oklch(0.48 0.16 140);
+            --color-accent-gold: oklch(0.56 0.13 60);
+            --color-bg: oklch(1.0 0.0 0);
+            --color-surface: oklch(0.97 0.0 0);
+            --color-ink: oklch(0.08 0.0 0);
+            --color-text-muted: oklch(0.55 0.0 0);
+            --color-border: oklch(0.88 0.0 0);
+            --color-success: oklch(0.58 0.15 142);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --radius-md: 8px;
+        }
+
+        [data-theme="dark"] {
+            --color-bg: oklch(0.15 0.0 0);
+            --color-surface: oklch(0.22 0.0 0);
+            --color-ink: oklch(0.95 0.0 0);
+            --color-text-muted: oklch(0.65 0.0 0);
+            --color-border: oklch(0.35 0.0 0);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--color-bg);
+            color: var(--color-ink);
+        }
+
+        .header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: var(--space-md) var(--space-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-primary-green);
+            cursor: pointer;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .header-btn {
+            padding: var(--space-md) var(--space-lg);
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            color: var(--color-ink);
+        }
+
+        .header-btn:hover {
+            background: var(--color-border);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: var(--space-xl) auto;
+            padding: var(--space-lg);
+        }
+
+        .profile-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-md);
+            padding: var(--space-xl);
+            margin-bottom: var(--space-lg);
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            margin-bottom: var(--space-xl);
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--color-primary-green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        .profile-info h1 {
+            font-size: 24px;
+            margin-bottom: var(--space-sm);
+        }
+
+        .profile-info p {
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-sm);
+        }
+
+        .profile-section {
+            margin-bottom: var(--space-xl);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-ink);
+            margin-bottom: var(--space-md);
+            border-top: 2px solid var(--color-primary-green);
+            padding-top: var(--space-md);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        label {
+            display: block;
+            margin-bottom: var(--space-sm);
+            font-weight: 500;
+            color: var(--color-ink);
+        }
+
+        input, select {
+            width: 100%;
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            font-family: var(--font-family);
+            background: var(--color-bg);
+            color: var(--color-ink);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--color-primary-green);
+            box-shadow: 0 0 0 3px rgba(72, 122, 51, 0.1);
+        }
+
+        .btn {
+            padding: var(--space-md) var(--space-lg);
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--color-primary-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--color-surface);
+            color: var(--color-ink);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-border);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+            margin-top: var(--space-lg);
+        }
+
+        .stat-card {
+            background: var(--color-bg);
+            padding: var(--space-lg);
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-primary-green);
+        }
+
+        .stat-label {
+            color: var(--color-text-muted);
+            font-size: 14px;
+            margin-top: var(--space-sm);
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-logo" onclick="window.location.href='/dashboard'">🎓 IGCSE Tutor</div>
+        <div class="header-controls">
+            <button class="header-btn" onclick="window.location.href='/dashboard'">📊 Dashboard</button>
+            <button class="header-btn" onclick="window.location.href='/chat'">💬 Chat</button>
+            <button class="header-btn" id="theme-toggle" data-toggle-theme="true">🌙</button>
+            <button class="header-btn" id="logout-btn">👤 Logout</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="profile-card">
+            <!-- Profile Header -->
+            <div class="profile-header">
+                <div class="profile-avatar">👤</div>
+                <div class="profile-info">
+                    <h1 id="userName">Student</h1>
+                    <p id="userEmail">student@example.com</p>
+                    <p id="joinDate">Joined recently</p>
+                </div>
+            </div>
+
+            <!-- Learning Stats -->
+            <div class="profile-section">
+                <div class="section-title">📊 Learning Stats</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="quizzesCompleted">0</div>
+                        <div class="stat-label">Quizzes Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgScore">0%</div>
+                        <div class="stat-label">Average Score</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="studyStreak">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Preferences -->
+            <div class="profile-section">
+                <div class="section-title">⚙️ Learning Preferences</div>
+                <div class="form-group">
+                    <label for="subjects">Favorite Subjects</label>
+                    <select id="subjects" multiple>
+                        <option value="maths" selected>Mathematics</option>
+                        <option value="english" selected>English</option>
+                        <option value="science">Science</option>
+                        <option value="french">French</option>
+                        <option value="history">History</option>
+                        <option value="geography">Geography</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="difficulty">Preferred Difficulty Level</label>
+                    <select id="difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="timezone">Timezone</label>
+                    <select id="timezone">
+                        <option value="UTC">UTC</option>
+                        <option value="GMT" selected>GMT</option>
+                        <option value="EST">EST</option>
+                        <option value="PST">PST</option>
+                        <option value="IST">IST</option>
+                        <option value="AEST">AEST</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Account Settings -->
+            <div class="profile-section">
+                <div class="section-title">🔐 Account Settings</div>
+                <div class="form-group">
+                    <label for="password">Change Password</label>
+                    <input type="password" id="password" placeholder="Enter new password">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+                    <button class="btn btn-secondary" onclick="window.location.href='/dashboard'">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="profile-section">
+                <div class="section-title" style="color: oklch(0.52 0.16 15);">⚠️ Danger Zone</div>
+                <button class="btn" style="background: oklch(0.52 0.16 15); color: white;" onclick="deleteAccount()">Delete Account</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load user profile data
+        function loadProfile() {
+            // In a real app, fetch from /api/user/profile
+            document.getElementById('userName').textContent = 'Alex Johnson';
+            document.getElementById('userEmail').textContent = 'alex@example.com';
+            document.getElementById('joinDate').textContent = 'Joined March 2024';
+            document.getElementById('quizzesCompleted').textContent = '24';
+            document.getElementById('avgScore').textContent = '78%';
+            document.getElementById('studyStreak').textContent = '12';
+        }
+
+        function saveProfile() {
+            alert('Profile updated successfully!');
+        }
+
+        function deleteAccount() {
+            if (confirm('Are you sure? This action cannot be undone.')) {
+                alert('Account deletion requested. You will receive a confirmation email.');
+            }
+        }
+
+        // Logout handler
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            fetch('/auth/logout', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(() => {
+                    window.location.href = '/login';
+                });
+        });
+
+        // Load profile on page load
+        loadProfile();
+    </script>
+</body>
+</html>

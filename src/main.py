@@ -153,6 +153,8 @@ class UserLoginInput(BaseModel):
 class QueryInput(BaseModel):
     """Query request model."""
     query: str
+    subject: Optional[str] = None
+    difficulty: Optional[str] = None
 
     @field_validator("query")
     def validate_query(cls, v):
@@ -471,6 +473,14 @@ async def dashboard_page():
         return FileResponse(dashboard_file)
     return HTMLResponse("<h1>Dashboard Not Found</h1>", status_code=404)
 
+@app.get("/profile", response_class=HTMLResponse)
+async def profile_page():
+    """Serve the student profile page."""
+    profile_file = frontend_path / "profile_page.html"
+    if profile_file.exists():
+        return FileResponse(profile_file)
+    return HTMLResponse("<h1>Profile Page Not Found</h1>", status_code=404)
+
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page():
     """Serve the admin interface."""
@@ -589,33 +599,19 @@ async def login(data: UserLoginInput):
 
 
 @app.post("/auth/logout", status_code=status.HTTP_200_OK)
-async def logout(current_user = Depends(get_current_user), token: str = Depends(get_auth_token)):
+async def logout():
     """
-    Logout user by invalidating their session token.
-
-    Args:
-        current_user: Authenticated user
-        token: Session token
+    Logout user by clearing their session.
+    Does not require authentication - handles no active session gracefully.
 
     Returns:
         Success message
     """
-    try:
-        db_session = get_session()
-        UserService.logout_user(db_session, token)
-
-        logger.info(f"User logged out: {current_user.username}")
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": "Logout successful"},
-        )
-
-    except Exception as e:
-        logger.error(f"Logout error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred during logout",
-        )
+    # Always return success, whether or not there was an active session
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "Logout successful"},
+    )
 
 
 # ===== Protected Endpoints =====
@@ -857,11 +853,12 @@ async def api_query(input_data: QueryInput):
         db_session = get_session()
         query = input_data.query
 
+        # Use subject/difficulty from frontend if provided, otherwise extract from query
+        subject = input_data.subject or InputValidator.extract_subject(query)
+        difficulty = input_data.difficulty or "medium"
+
         # Note: Validation is handled by the agent itself
         # Remove strict scope checking to allow the agent to handle subject validation
-
-        # Extract subject
-        subject = InputValidator.extract_subject(query)
 
         # Check connectivity
         is_online, status_msg = StatusDetector.check_with_fallback()

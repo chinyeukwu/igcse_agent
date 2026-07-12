@@ -1,96 +1,343 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz - IGCSE Tutor</title>
+    <script src="/static/theme-manager.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #f5f5f5; }
-        .container { max-width: 800px; margin: 0 auto; padding: 20px; background: white; border-radius: 8px; }
-        header { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
-        .logo { font-size: 24px; font-weight: bold; color: #4F46E5; }
-        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
-        .btn-primary { background: #4F46E5; color: white; }
-        .btn-secondary { background: #f0f0f0; border: 1px solid #ddd; }
-        .question-container { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .question-text { font-weight: 600; margin-bottom: 10px; }
-        textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px; }
-        .actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+        /* ===== CSS Custom Properties: Color Palette ===== */
+        :root {
+            /* Light Mode (Default) */
+            --color-primary-green: oklch(0.48 0.16 140);
+            --color-accent-gold: oklch(0.56 0.13 60);
+            --color-bg: oklch(1.0 0.0 0);
+            --color-surface: oklch(0.97 0.0 0);
+            --color-ink: oklch(0.08 0.0 0);
+            --color-text-muted: oklch(0.55 0.0 0);
+            --color-border: oklch(0.88 0.0 0);
+            --color-success: oklch(0.58 0.15 142);
+            --color-error: oklch(0.52 0.16 15);
+
+            /* Typography Scale */
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+            --font-size-label: 14px;
+            --font-size-body: 16px;
+            --font-size-title: 18px;
+            --font-size-headline: 24px;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+
+            /* Radius */
+            --radius-md: 8px;
+        }
+
+        [data-theme="dark"] {
+            --color-bg: oklch(0.15 0.0 0);
+            --color-surface: oklch(0.22 0.0 0);
+            --color-ink: oklch(0.95 0.0 0);
+            --color-text-muted: oklch(0.65 0.0 0);
+            --color-border: oklch(0.35 0.0 0);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--color-bg);
+            color: var(--color-ink);
+            line-height: 1.5;
+        }
+
+        /* ===== Header Navigation ===== */
+        .header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: var(--space-md) var(--space-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+        }
+
+        .header-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-primary-green);
+        }
+
+        .header-logo:hover {
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .header-title {
+            font-size: var(--font-size-title);
+            color: var(--color-ink);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: var(--space-md);
+            align-items: center;
+        }
+
+        .header-btn {
+            padding: var(--space-sm) var(--space-md);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-body);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--color-primary-green);
+            color: white;
+        }
+
+        .header-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .header-btn.secondary {
+            background: var(--color-surface);
+            color: var(--color-ink);
+            border: 1px solid var(--color-border);
+        }
+
+        /* ===== Main Container ===== */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--space-lg);
+        }
+
+        .quiz-header {
+            background: var(--color-surface);
+            padding: var(--space-lg);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-lg);
+            border-top: 2px solid var(--color-primary-green);
+        }
+
+        .quiz-title {
+            font-size: var(--font-size-headline);
+            color: var(--color-ink);
+            margin-bottom: var(--space-sm);
+        }
+
+        .quiz-meta {
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+        }
+
+        .loading-text {
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--color-text-muted);
+        }
+
+        #quiz-form {
+            display: none;
+        }
+
+        .question-container {
+            background: var(--color-surface);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+            border-radius: var(--radius-md);
+            border-top: 2px solid var(--color-accent-gold);
+        }
+
+        .question-number {
+            font-size: var(--font-size-label);
+            color: var(--color-accent-gold);
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .question-text {
+            font-size: var(--font-size-body);
+            font-weight: 600;
+            color: var(--color-ink);
+            margin-bottom: var(--space-md);
+        }
+
+        textarea {
+            width: 100%;
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            min-height: 100px;
+            font-family: var(--font-family);
+            font-size: var(--font-size-body);
+            background: var(--color-bg);
+            color: var(--color-ink);
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--color-primary-green);
+            box-shadow: 0 0 0 3px rgba(72, 122, 51, 0.1);
+        }
+
+        .actions {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: center;
+            margin-top: var(--space-xl);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .btn {
+            padding: var(--space-md) var(--space-lg);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-body);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--color-primary-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--color-surface);
+            color: var(--color-ink);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-border);
+        }
     </style>
 </head>
 <body>
+    <!-- Header Navigation -->
+    <div class="header">
+        <div class="header-left">
+            <div class="header-logo" onclick="window.location.href='/dashboard'">🎓 IGCSE Tutor</div>
+            <div class="header-title">Quiz</div>
+        </div>
+        <div class="header-controls">
+            <button class="header-btn secondary" onclick="window.location.href='/dashboard'">📊 Dashboard</button>
+            <button class="header-btn secondary" onclick="window.location.href='/chat'">💬 Chat</button>
+            <button class="header-btn secondary" id="theme-toggle" data-toggle-theme="true">🌙</button>
+            <button class="header-btn secondary" id="logout-btn">👤 Logout</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
     <div class="container">
-        <header>
-            <div class="logo">Quiz</div>
-            <button class="btn-secondary" onclick="window.location.href='/dashboard'">Back</button>
-        </header>
-        <div id="loading">Loading quiz...</div>
-        <form id="quiz-form" style="display:none;">
-            <div id="quiz-title" style="font-size: 20px; font-weight: bold; margin-bottom: 20px;"></div>
+        <div class="quiz-header">
+            <div class="quiz-title" id="quiz-title">Loading Quiz...</div>
+            <div class="quiz-meta" id="quiz-meta"></div>
+        </div>
+
+        <div id="loading" class="loading-text">Loading quiz questions...</div>
+
+        <form id="quiz-form">
             <div id="questions-container"></div>
             <div class="actions">
-                <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard'">Cancel</button>
-                <button type="submit" class="btn-primary">Submit</button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='/dashboard'">Cancel</button>
+                <button type="submit" class="btn btn-primary">Submit Quiz</button>
             </div>
         </form>
     </div>
+
     <script>
+        // Logout handler
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            fetch('/auth/logout', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(() => {
+                    window.location.href = '/login';
+                });
+        });
+
+        // Quiz loading logic
         const params = new URLSearchParams(window.location.search);
         const subject = params.get('subject') || 'general';
         const topic = params.get('topic') || '';
         const difficulty = params.get('difficulty') || 'medium';
-        
+
         async function loadQuiz() {
             try {
                 let query = `Create a ${difficulty} quiz`;
                 if (topic) query += ` on ${topic}`;
                 if (subject && subject !== 'general') query += ` for ${subject}`;
-                
+
                 const resp = await fetch('/api/query', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query, subject, difficulty })
                 });
-                
+
                 const data = await resp.json();
                 const text = data.response;
-                
+
                 const questions = [];
                 const regex = /\d+\.\s+([^\n]+)/g;
                 let m;
                 while ((m = regex.exec(text)) !== null) {
                     questions.push(m[1].trim());
                 }
-                
+
                 if (questions.length === 0) {
                     document.getElementById('loading').textContent = 'No questions found.';
                     return;
                 }
-                
+
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('quiz-title').textContent = topic || subject || 'Quiz';
-                
+                document.getElementById('quiz-meta').textContent = `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} · ${questions.length} Questions`;
+
                 const container = document.getElementById('questions-container');
                 questions.forEach((q, i) => {
                     const div = document.createElement('div');
                     div.className = 'question-container';
-                    div.innerHTML = `<div class="question-text">Q${i+1}: ${q}</div>
-                        <textarea name="answer_${i}" placeholder="Your answer..."></textarea>`;
+                    div.innerHTML = `
+                        <div class="question-number">Question ${i + 1}</div>
+                        <div class="question-text">${q}</div>
+                        <textarea name="answer_${i}" placeholder="Enter your answer here..." required></textarea>
+                    `;
                     container.appendChild(div);
                 });
-                
+
                 document.getElementById('quiz-form').style.display = 'block';
             } catch (e) {
-                document.getElementById('loading').textContent = 'Error: ' + e.message;
+                document.getElementById('loading').textContent = 'Error loading quiz: ' + e.message;
             }
         }
-        
+
         document.getElementById('quiz-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            alert('Quiz submitted!');
+            alert('Quiz submitted! Great work!');
             window.location.href = '/dashboard';
         });
-        
+
         loadQuiz();
     </script>
 </body>

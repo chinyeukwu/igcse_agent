@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard — Agentic AI Tutor</title>
-    <script src="theme-manager.js"></script>
+    <script src="/static/theme-manager.js"></script>
     <style>
         /* ===== CSS Custom Properties: Color Palette ===== */
         :root {
@@ -559,6 +559,8 @@
             padding: var(--space-2xl);
             max-width: 500px;
             width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             z-index: var(--z-modal);
         }
@@ -1002,23 +1004,64 @@
                     </div>
                 </div>
 
-                <!-- Performance Charts Section -->
+                <!-- Performance Analytics Section -->
                 <div class="section">
                     <h3 class="section__title">
                         <span>📊</span>
                         Performance Analytics
                     </h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-xl);">
-                        <!-- Score Trend Chart -->
+                        <!-- Score Trend Card -->
                         <div class="card" style="padding: var(--space-lg);">
-                            <h4 style="margin-bottom: var(--space-md); color: var(--color-ink); font-weight: var(--font-weight-semibold);">Score Trend (Last 10 Quizzes)</h4>
-                            <canvas id="score-trend-chart" style="height: 250px;"></canvas>
-                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-top: var(--space-md);">Average: <strong>78%</strong> · Trend: ↑ +3%</p>
+                            <h4 style="margin-bottom: var(--space-md); color: var(--color-ink); font-weight: var(--font-weight-semibold);">📈 Score Trend</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);">
+                                <div style="background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); text-align: center;">
+                                    <div style="font-size: 24px; font-weight: 700; color: var(--color-primary-green);">78%</div>
+                                    <div style="font-size: 12px; color: var(--color-text-muted);">Average</div>
+                                </div>
+                                <div style="background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); text-align: center;">
+                                    <div style="font-size: 24px; font-weight: 700; color: var(--color-success);">↑ +3%</div>
+                                    <div style="font-size: 12px; color: var(--color-text-muted);">Trend</div>
+                                </div>
+                                <div style="background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); text-align: center;">
+                                    <div style="font-size: 24px; font-weight: 700; color: var(--color-primary-green);">24</div>
+                                    <div style="font-size: 12px; color: var(--color-text-muted);">Quizzes</div>
+                                </div>
+                            </div>
+                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-top: var(--space-md);">Latest scores: 82% → 85% → 78%</p>
                         </div>
                         <!-- Accuracy by Subject -->
                         <div class="card" style="padding: var(--space-lg);">
-                            <h4 style="margin-bottom: var(--space-md); color: var(--color-ink); font-weight: var(--font-weight-semibold);">Accuracy by Subject</h4>
-                            <canvas id="accuracy-subject-chart" style="height: 250px;"></canvas>
+                            <h4 style="margin-bottom: var(--space-md); color: var(--color-ink); font-weight: var(--font-weight-semibold);">🎯 Accuracy by Subject</h4>
+                            <div style="display: flex; flex-direction: column; gap: var(--space-md);">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                                        <span style="font-size: 14px;">Maths</span>
+                                        <span style="font-weight: 600; color: var(--color-primary-green);">85%</span>
+                                    </div>
+                                    <div style="background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="background: var(--color-primary-green); height: 100%; width: 85%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                                        <span style="font-size: 14px;">English</span>
+                                        <span style="font-weight: 600; color: var(--color-primary-green);">72%</span>
+                                    </div>
+                                    <div style="background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="background: var(--color-primary-green); height: 100%; width: 72%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                                        <span style="font-size: 14px;">Science</span>
+                                        <span style="font-weight: 600; color: var(--color-primary-green);">79%</span>
+                                    </div>
+                                    <div style="background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="background: var(--color-primary-green); height: 100%; width: 79%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1217,28 +1260,47 @@
     <div id="subject-modal" class="modal">
         <div class="modal__content">
             <button class="modal__close" id="modal-close">&times;</button>
-            <h2>Select a Subject</h2>
-            <div class="progress-grid" style="margin-top: var(--space-lg);">
-                <div class="progress-card" data-subject="maths">
-                    <div class="progress-card__subject">Maths</div>
-                </div>
-                <div class="progress-card" data-subject="english">
-                    <div class="progress-card__subject">English</div>
-                </div>
-                <div class="progress-card" data-subject="science">
-                    <div class="progress-card__subject">Science</div>
-                </div>
-                <div class="progress-card" data-subject="french">
-                    <div class="progress-card__subject">French</div>
-                </div>
-                <div class="progress-card" data-subject="finearts">
-                    <div class="progress-card__subject">Fine Arts</div>
+            <h2 style="margin-bottom: var(--space-lg);">Select Subject & Difficulty</h2>
+
+            <!-- Subject Selection -->
+            <div style="margin-bottom: var(--space-xl);">
+                <h3 style="font-size: var(--font-size-title); margin-bottom: var(--space-md); color: var(--color-ink);">📚 Choose Subject</h3>
+                <div class="progress-grid">
+                    <div class="progress-card" data-subject="maths">
+                        <div class="progress-card__subject">Maths</div>
+                    </div>
+                    <div class="progress-card" data-subject="english">
+                        <div class="progress-card__subject">English</div>
+                    </div>
+                    <div class="progress-card" data-subject="science">
+                        <div class="progress-card__subject">Science</div>
+                    </div>
+                    <div class="progress-card" data-subject="french">
+                        <div class="progress-card__subject">French</div>
+                    </div>
+                    <div class="progress-card" data-subject="finearts">
+                        <div class="progress-card__subject">Fine Arts</div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Difficulty Selection -->
+            <div style="margin-bottom: var(--space-lg);">
+                <h3 style="font-size: var(--font-size-title); margin-bottom: var(--space-md); color: var(--color-ink);">⚡ Difficulty Level</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md);">
+                    <button class="difficulty-btn" data-difficulty="easy" style="padding: var(--space-md); border: 2px solid var(--color-border); background: var(--color-bg); border-radius: var(--radius-md); cursor: pointer; font-weight: 600; transition: all 0.2s;">Easy</button>
+                    <button class="difficulty-btn" data-difficulty="medium" style="padding: var(--space-md); border: 2px solid var(--color-primary-green); background: var(--color-bg); border-radius: var(--radius-md); cursor: pointer; font-weight: 600; transition: all 0.2s; color: var(--color-primary-green);">Medium</button>
+                    <button class="difficulty-btn" data-difficulty="hard" style="padding: var(--space-md); border: 2px solid var(--color-border); background: var(--color-bg); border-radius: var(--radius-md); cursor: pointer; font-weight: 600; transition: all 0.2s;">Hard</button>
+                </div>
+            </div>
+
+            <!-- Start Quiz Button -->
+            <button id="start-quiz-modal-btn" class="btn-primary" style="width: 100%; padding: var(--space-md); margin-top: var(--space-lg);" disabled>Start Quiz</button>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js blocked by tracking prevention, charts disabled for MVP -->
+    <!-- <script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js"></script> -->
     <script>
         // ===== Chart Configuration =====
         const chartConfig = {
@@ -1280,6 +1342,7 @@
 
         // ===== Score Trend Chart =====
         async function initScoreTrendChart() {
+            if (typeof Chart === 'undefined') return; // Chart.js not loaded
             const ctx = document.getElementById('score-trend-chart');
             if (!ctx) return;
 
@@ -1334,6 +1397,7 @@
 
         // ===== Accuracy by Subject Chart =====
         async function initAccuracyChart() {
+            if (typeof Chart === 'undefined') return; // Chart.js not loaded
             const ctx = document.getElementById('accuracy-subject-chart');
             if (!ctx) return;
 
@@ -1397,19 +1461,10 @@
             const returningFlow = document.getElementById('returning-flow');
             if (returningFlow && returningFlow.style.display !== 'none') {
                 setTimeout(() => {
-                    initScoreTrendChart();
-                    initAccuracyChart();
+                    // Chart.js initialization removed - using HTML-based analytics instead
+                    // initScoreTrendChart();
+                    // initAccuracyChart();
                 }, 500);
-            }
-        });
-
-        // Theme Toggle
-        const themeToggle = document.getElementById('theme-toggle');
-        themeToggle.setAttribute('data-toggle-theme', 'true');
-
-        themeToggle.addEventListener('click', () => {
-            if (window.themeManager) {
-                window.themeManager.toggleTheme();
             }
         });
 
@@ -1431,9 +1486,14 @@
         const modal = document.getElementById('subject-modal');
         const modalClose = document.getElementById('modal-close');
         const startQuizBtn = document.getElementById('start-first-quiz-btn');
+        const startQuizBtn2 = document.getElementById('start-quiz-btn');
         const subjectCards = document.querySelectorAll('[data-subject]');
 
         startQuizBtn?.addEventListener('click', () => {
+            modal.classList.add('active');
+        });
+
+        startQuizBtn2?.addEventListener('click', () => {
             modal.classList.add('active');
         });
 
@@ -1447,14 +1507,26 @@
             }
         });
 
+        // Quiz modal state
+        let selectedSubject = null;
+        let selectedDifficulty = 'medium';
+
+        // Subject card selection
         subjectCards.forEach(card => {
             card.addEventListener('click', () => {
-                const subject = card.getAttribute('data-subject');
-                // In a real app, navigate to quiz page with selected subject
-                console.log('Selected subject:', subject);
-                modal.classList.remove('active');
-                // Simulate navigation
-                alert(`Starting quiz for ${subject}...`);
+                // Remove previous selection
+                subjectCards.forEach(c => {
+                    c.style.borderLeft = '';
+                    c.style.backgroundColor = '';
+                });
+
+                // Mark as selected
+                selectedSubject = card.getAttribute('data-subject');
+                card.style.borderLeft = '4px solid var(--color-primary-green)';
+                card.style.backgroundColor = 'var(--color-border)';
+
+                // Enable start button if subject is selected
+                updateStartButtonState();
             });
 
             card.addEventListener('keydown', (e) => {
@@ -1467,6 +1539,53 @@
             // Make cards keyboard accessible
             card.setAttribute('role', 'button');
             card.setAttribute('tabindex', '0');
+        });
+
+        // Difficulty button selection
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove previous selection styling
+                document.querySelectorAll('.difficulty-btn').forEach(b => {
+                    b.style.borderColor = 'var(--color-border)';
+                    b.style.color = 'var(--color-ink)';
+                });
+
+                // Mark as selected
+                selectedDifficulty = btn.getAttribute('data-difficulty');
+                btn.style.borderColor = 'var(--color-primary-green)';
+                btn.style.color = 'var(--color-primary-green)';
+
+                // Enable start button if subject is selected
+                updateStartButtonState();
+            });
+
+            // Set default (medium) as selected
+            if (btn.getAttribute('data-difficulty') === 'medium') {
+                btn.style.borderColor = 'var(--color-primary-green)';
+                btn.style.color = 'var(--color-primary-green)';
+            }
+        });
+
+        // Helper function to update start button state
+        function updateStartButtonState() {
+            const startBtn = document.getElementById('start-quiz-modal-btn');
+            if (selectedSubject) {
+                startBtn.disabled = false;
+                startBtn.style.opacity = '1';
+                startBtn.style.cursor = 'pointer';
+            } else {
+                startBtn.disabled = true;
+                startBtn.style.opacity = '0.5';
+                startBtn.style.cursor = 'not-allowed';
+            }
+        }
+
+        // Start quiz button handler
+        document.getElementById('start-quiz-modal-btn').addEventListener('click', () => {
+            if (selectedSubject) {
+                modal.classList.remove('active');
+                window.location.href = `/quiz?subject=${encodeURIComponent(selectedSubject)}&difficulty=${encodeURIComponent(selectedDifficulty)}`;
+            }
         });
 
         // Logout
@@ -1521,7 +1640,7 @@
         const profileBtn = document.getElementById('profile-btn');
         if (profileBtn) {
             profileBtn.addEventListener('click', () => {
-                alert('Profile page coming soon!');
+                window.location.href = '/profile';
             });
         }
 
@@ -1541,22 +1660,6 @@
                 window.location.href = `/quiz?subject=${encodeURIComponent(subject)}&topic=${encodeURIComponent(topic)}`;
             });
         });
-
-        // Start a Quiz button - Redirect to quiz selection page
-        const startQuizBtn = document.getElementById('start-quiz-btn');
-        if (startQuizBtn) {
-            startQuizBtn.addEventListener('click', () => {
-                window.location.href = '/quiz';
-            });
-        }
-
-        // Start First Quiz button - Redirect to quiz selection page
-        const startFirstQuizBtn = document.getElementById('start-first-quiz-btn');
-        if (startFirstQuizBtn) {
-            startFirstQuizBtn.addEventListener('click', () => {
-                window.location.href = '/quiz';
-            });
-        }
 
         // Practice Grammar button - Redirect to chat for grammar practice
         const practiceGrammarBtn = document.getElementById('practice-grammar-btn');

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat with AI Tutor — Agentic AI Tutor</title>
-    <script src="theme-manager.js"></script>
+    <script src="/static/theme-manager.js"></script>
     <style>
         /* ===== CSS Custom Properties: Color Palette ===== */
         :root {
@@ -609,14 +609,16 @@
 </head>
 <body>
     <div class="chat-container">
-        <!-- Top Header with Theme Toggle -->
-        <header style="position: sticky; top: 0; z-index: 250; background-color: var(--color-bg); border-bottom: 1px solid var(--color-border); padding: var(--space-md); display: flex; justify-content: space-between; align-items: center;">
-            <h1 style="font-size: var(--font-size-title); margin: 0; font-weight: var(--font-weight-semibold);">🎓 Agentic Tutor</h1>
+        <!-- Top Header with Navigation -->
+        <header style="position: sticky; top: 0; z-index: 250; background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: var(--space-md) var(--space-lg); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: var(--space-lg);">
+                <h1 style="font-size: var(--font-size-title); margin: 0; font-weight: var(--font-weight-semibold); cursor: pointer; color: var(--color-primary-green);" onclick="window.location.href='/dashboard'">🎓 IGCSE Tutor</h1>
+                <button style="padding: var(--space-sm) var(--space-md); background-color: var(--color-bg); color: var(--color-ink); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-label); cursor: pointer; transition: all var(--transition-fast);" title="Back to dashboard" onclick="window.location.href='/dashboard'">📊 Dashboard</button>
+            </div>
             <div style="display: flex; gap: var(--space-md); align-items: center;">
-                <span style="font-size: var(--font-size-body); color: var(--color-ink);">Alex</span>
-                <button style="padding: var(--space-sm) var(--space-md); background-color: var(--color-surface); color: var(--color-primary-green); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-label); cursor: pointer; transition: all var(--transition-fast);" title="View profile">👤 Profile</button>
-                <button class="theme-toggle" data-toggle-theme style="background: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; color: var(--color-ink); transition: all var(--transition-fast);" aria-label="Toggle dark mode">🌙</button>
-                <button style="padding: var(--space-sm) var(--space-md); background-color: var(--color-surface); color: var(--color-ink); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-label); cursor: pointer;">Logout</button>
+                <button style="padding: var(--space-sm) var(--space-md); background-color: var(--color-bg); color: var(--color-ink); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-label); cursor: pointer; transition: all var(--transition-fast);" title="View profile" onclick="window.location.href='/profile'">👤 Profile</button>
+                <button id="chat-theme-toggle" data-toggle-theme style="padding: var(--space-sm) var(--space-md); background-color: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); width: auto; height: auto; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; color: var(--color-ink); transition: all var(--transition-fast);" aria-label="Toggle dark mode">🌙</button>
+                <button id="chat-logout-btn" style="padding: var(--space-sm) var(--space-md); background-color: var(--color-bg); color: var(--color-ink); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-label); cursor: pointer;">Logout</button>
             </div>
         </header>
 
@@ -967,6 +969,30 @@
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
+
+        // ===== Header Event Handlers =====
+
+        // Logout button handler
+        document.getElementById('chat-logout-btn').addEventListener('click', () => {
+            fetch('/auth/logout', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(() => {
+                    window.location.href = '/login';
+                });
+        });
+
+        // Theme toggle button handler
+        document.getElementById('chat-theme-toggle').addEventListener('click', () => {
+            if (window.themeManager) {
+                window.themeManager.toggleTheme();
+                const htmlElement = document.documentElement;
+                const isDark = htmlElement.getAttribute('data-theme') === 'dark' ||
+                              window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.getElementById('chat-theme-toggle').textContent = isDark ? '☀️' : '🌙';
+            }
+        });
     </script>
 </body>
 </html>
