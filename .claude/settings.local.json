@@ -30,7 +30,18 @@
       "Bash(cat)",
       "Read(//tmp/**)",
       "PowerShell(\\(Get-Content \"C:\\\\projects\\\\agenticaitutor\\\\src\\\\database\\\\models.py\" | Measure-Object -Line\\).Lines)",
-      "PowerShell(C:\\\\projects\\\\agenticaitutor\\\\mytutor\\\\Scripts\\\\python.exe -m py_compile C:\\\\projects\\\\agenticaitutor\\\\src\\\\main.py 2>&1; echo \"Status: $?\")"
+      "PowerShell(C:\\\\projects\\\\agenticaitutor\\\\mytutor\\\\Scripts\\\\python.exe -m py_compile C:\\\\projects\\\\agenticaitutor\\\\src\\\\main.py 2>&1; echo \"Status: $?\")",
+      "PowerShell(C:\\\\projects\\\\agenticaitutor\\\\mytutor\\\\Scripts\\\\python.exe -m py_compile C:\\\\projects\\\\agenticaitutor\\\\test_email_delivery.py 2>&1; echo \"Compilation: OK\")",
+      "PowerShell(.\\\\mytutor\\\\Scripts\\\\python.exe -m uvicorn src.main:app --host 127.0.0.1 --port 8001 2>&1)",
+      "PowerShell(Start-Sleep -Seconds 3; try { $response = Invoke-WebRequest -Uri \"http://127.0.0.1:8001/health\" -ErrorAction Stop; $response.StatusCode; $response.Content } catch { \"Server not responding yet: $_\" })",
+      "PowerShell(.\\\\mytutor\\\\Scripts\\\\python.exe -m uvicorn src.main:app --host 127.0.0.1 --port 8001 --timeout-keep-alive 0)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(netstat *)",
+      "PowerShell(taskkill *)",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; .\\\\mytutor\\\\Scripts\\\\python.exe -c \"import sys; sys.stdout.reconfigure\\(encoding='utf-8'\\)\" ; .\\\\mytutor\\\\Scripts\\\\python.exe test_phase1.py 2>&1)",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; .\\\\mytutor\\\\Scripts\\\\python.exe test_phase3.py 2>&1 | Select-Object -First 150)",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; .\\\\mytutor\\\\Scripts\\\\python.exe test_phase4.py 2>&1 | Select-Object -First 200)",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; .\\\\mytutor\\\\Scripts\\\\python.exe test_phase5.py 2>&1 | Select-Object -First 200)"
     ]
   }
 }

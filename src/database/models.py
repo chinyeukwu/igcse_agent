@@ -164,7 +164,7 @@ class ChatHistory(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     # Relationships
-    user = relationship("User", backref="chat_messages")
+    user = relationship("User", back_populates="chat_messages")
 
     def __repr__(self) -> str:
         """Return string representation of ChatHistory."""
