@@ -869,6 +869,7 @@
                 </div>
             </div>
             <div class="header__controls">
+                <button class="btn-secondary btn-small" id="profile-btn" title="Profile">👤</button>
                 <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
                 <button class="btn-secondary btn-small" id="logout-btn">Logout</button>
             </div>
@@ -1499,6 +1500,31 @@
             }
         });
 
+        // Theme Toggle button
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                if (window.themeManager) {
+                    window.themeManager.toggleTheme();
+                    // Update button text
+                    const htmlElement = document.documentElement;
+                    const isDark = htmlElement.getAttribute('data-theme') === 'dark' ||
+                                  window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    themeToggle.textContent = isDark ? '☀️' : '🌙';
+                } else {
+                    console.warn('Theme manager not loaded');
+                }
+            });
+        }
+
+        // Profile button
+        const profileBtn = document.getElementById('profile-btn');
+        if (profileBtn) {
+            profileBtn.addEventListener('click', () => {
+                alert('Profile page coming soon!');
+            });
+        }
+
         // Chat with Tutor button - Redirect to chat interface
         const chatBtn = document.getElementById('chat-btn');
         if (chatBtn) {
@@ -1547,6 +1573,19 @@
             advancedVocabBtn.addEventListener('click', () => {
                 window.location.href = `/quiz?subject=french&topic=Vocabulary&difficulty=advanced`;
             });
+        }
+
+        // Show appropriate flow (returning student by default)
+        const hasQuizHistory = true; // In real app, check from API
+        const returningFlow = document.getElementById('returning-flow');
+        const firstTimeFlow = document.getElementById('first-time-flow');
+
+        if (hasQuizHistory && returningFlow) {
+            returningFlow.style.display = 'block';
+            if (firstTimeFlow) firstTimeFlow.style.display = 'none';
+        } else if (firstTimeFlow) {
+            firstTimeFlow.style.display = 'block';
+            if (returningFlow) returningFlow.style.display = 'none';
         }
 
         // Set greeting date
