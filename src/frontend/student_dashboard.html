@@ -1086,7 +1086,7 @@
                                 <span style="background-color: var(--color-error); color: white; padding: 4px 8px; border-radius: 4px; font-size: var(--font-size-label);">62% accuracy</span>
                             </div>
                             <p style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-bottom: var(--space-md);">Last reviewed: 9 days ago · Urgency: <strong style="color: var(--color-error);">HIGH</strong></p>
-                            <button class="btn-primary" style="width: 100%; padding: var(--space-sm) var(--space-md); font-size: var(--font-size-label);">Quiz Now</button>
+                            <button class="btn-primary quiz-now-btn" style="width: 100%; padding: var(--space-sm) var(--space-md); font-size: var(--font-size-label);" data-subject="maths" data-topic="Algebra">Quiz Now</button>
                         </div>
                         <div class="card" style="padding: var(--space-lg);">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-md);">
@@ -1097,7 +1097,7 @@
                                 <span style="background-color: var(--color-warning); color: white; padding: 4px 8px; border-radius: 4px; font-size: var(--font-size-label);">68% accuracy</span>
                             </div>
                             <p style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-bottom: var(--space-md);">Last reviewed: 5 days ago · Urgency: <strong style="color: var(--color-warning);">MEDIUM</strong></p>
-                            <button class="btn-primary" style="width: 100%; padding: var(--space-sm) var(--space-md); font-size: var(--font-size-label);">Quiz Now</button>
+                            <button class="btn-primary quiz-now-btn" style="width: 100%; padding: var(--space-sm) var(--space-md); font-size: var(--font-size-label);" data-subject="english" data-topic="Poetry">Quiz Now</button>
                         </div>
                     </div>
                 </div>
@@ -1145,12 +1145,12 @@
                     <div class="recommendation">
                         <div class="recommendation__title">Grammar & Syntax (Weak Area)</div>
                         <div class="recommendation__description">Your English grammar scores dipped 12% this week. Let's focus on strengthening this area.</div>
-                        <button class="btn-primary btn-small">Practice Grammar</button>
+                        <button class="btn-primary btn-small" id="practice-grammar-btn">Practice Grammar</button>
                     </div>
                     <div class="recommendation">
                         <div class="recommendation__title">French Vocabulary Expansion</div>
                         <div class="recommendation__description">You're making great progress! Challenge yourself with advanced vocabulary.</div>
-                        <button class="btn-primary btn-small">Start Advanced Vocab Quiz</button>
+                        <button class="btn-primary btn-small" id="advanced-vocab-btn">Start Advanced Vocab Quiz</button>
                     </div>
                 </div>
 
@@ -1186,7 +1186,7 @@
                         <h2 class="hero__title">Ready to Learn More?</h2>
                         <p class="hero__subtitle">Jump into your next quiz or ask the AI tutor a question</p>
                         <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;">
-                            <button class="btn-primary">Start a Quiz</button>
+                            <button class="btn-primary" id="start-quiz-btn">Start a Quiz</button>
                             <button class="btn-secondary" id="chat-btn">Chat with Tutor</button>
                         </div>
                     </div>
@@ -1504,6 +1504,48 @@
         if (chatBtn) {
             chatBtn.addEventListener('click', () => {
                 window.location.href = '/chat';
+            });
+        }
+
+        // Quiz Now buttons - Redirect to quiz with subject and topic
+        document.querySelectorAll('.quiz-now-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const subject = btn.getAttribute('data-subject');
+                const topic = btn.getAttribute('data-topic');
+                window.location.href = `/quiz?subject=${encodeURIComponent(subject)}&topic=${encodeURIComponent(topic)}`;
+            });
+        });
+
+        // Start a Quiz button - Redirect to quiz selection page
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+        if (startQuizBtn) {
+            startQuizBtn.addEventListener('click', () => {
+                window.location.href = '/quiz';
+            });
+        }
+
+        // Start First Quiz button - Redirect to quiz selection page
+        const startFirstQuizBtn = document.getElementById('start-first-quiz-btn');
+        if (startFirstQuizBtn) {
+            startFirstQuizBtn.addEventListener('click', () => {
+                window.location.href = '/quiz';
+            });
+        }
+
+        // Practice Grammar button - Redirect to chat for grammar practice
+        const practiceGrammarBtn = document.getElementById('practice-grammar-btn');
+        if (practiceGrammarBtn) {
+            practiceGrammarBtn.addEventListener('click', () => {
+                // Redirect to chat and pre-populate with grammar topic
+                window.location.href = '/chat?topic=grammar';
+            });
+        }
+
+        // Advanced Vocab Quiz button - Generate quiz on French vocabulary
+        const advancedVocabBtn = document.getElementById('advanced-vocab-btn');
+        if (advancedVocabBtn) {
+            advancedVocabBtn.addEventListener('click', () => {
+                window.location.href = `/quiz?subject=french&topic=Vocabulary&difficulty=advanced`;
             });
         }
 
