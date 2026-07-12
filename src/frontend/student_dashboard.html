@@ -1470,9 +1470,33 @@
 
         // Logout
         const logoutBtn = document.getElementById('logout-btn');
-        logoutBtn.addEventListener('click', () => {
-            // In a real app, call logout endpoint
-            alert('Logging out...');
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                const token = localStorage.getItem('auth_token') || new URLSearchParams(window.location.search).get('token') || '';
+                if (!token) {
+                    alert('No active session');
+                    return;
+                }
+
+                const response = await fetch('http://127.0.0.1:8001/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('auth_token');
+                    alert('Logged out successfully');
+                    window.location.href = '/';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Error logging out. Please check console.');
+            }
         });
 
         // Set greeting date
