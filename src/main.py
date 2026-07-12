@@ -859,7 +859,6 @@ async def api_query(input_data: QueryInput):
         # Generate new response using orchestrator routing
         try:
             from src.agents.orchestrator import route_query
-import re
 
             response = await asyncio.to_thread(route_query, query)
             logger.debug(f"Raw agent response type: {type(response)}")
