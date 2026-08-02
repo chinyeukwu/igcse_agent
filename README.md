@@ -1,5 +1,7 @@
 # Agentic AI Tutor (IGCSE)
 
+[![CI](https://github.com/chinyeukwu/igcse_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/chinyeukwu/igcse_agent/actions/workflows/ci.yml)
+
 An adaptive learning platform for Pearson Edexcel IGCSE students. A FastAPI
 backend serves AI‑generated quizzes, a chat tutor, progress analytics, and an
 admin panel, backed by SQLite. Quizzes are generated and essays evaluated with
