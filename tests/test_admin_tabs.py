@@ -15,7 +15,7 @@ import random
 import string
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.database import init_database, get_session
 from src.database.models import QuizHistory, PaperQuestion

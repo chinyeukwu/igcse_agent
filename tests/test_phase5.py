@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timedelta
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.database import init_database, get_session
 from src.auth import UserService
@@ -789,11 +789,13 @@ def main():
     print(f"Result: {total_passed} total tests passed")
     print("="*60)
     
-    if total_passed >= 30:
+    success = total_passed >= 30
+    if success:
         print("\n[SUCCESS] Phase 5 tests passed! Admin dashboard is working correctly.")
     else:
         print(f"\n{total_passed} of 36+ tests passed. Please review failures above.")
+    return success
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(0 if main() else 1)

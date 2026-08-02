@@ -16,12 +16,12 @@ RESET = "\033[0m"
 BOLD = "\033[1m"
 
 # Set up path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load .env file
 def load_env_file():
     """Load .env file into environment variables"""
-    env_path = Path(__file__).parent / ".env"
+    env_path = Path(__file__).parent.parent / ".env"
     if env_path.exists():
         with open(env_path, 'r', encoding='utf-8-sig') as f:
             for line in f:

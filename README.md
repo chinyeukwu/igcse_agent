@@ -79,13 +79,21 @@ the generator loads at runtime. Re‑running is idempotent.
 
 ## Tests
 
-Script‑style checks live at the repo root and are run directly:
+Script‑style checks live in `tests/` and are run directly (they add the repo
+root to `sys.path`, so run them from the repo root):
 
 ```bash
-python test_phase1.py   # auth
-python test_phase4.py   # quiz persistence
-python test_phase5.py   # admin
+python tests/test_phase1.py       # auth
+python tests/test_phase2.py       # security / validation
+python tests/test_phase3.py       # offline / cache
+python tests/test_phase4.py       # quiz persistence
+python tests/test_phase5.py       # admin
+python tests/test_admin_tabs.py   # admin analytics + question bank
 ```
+
+These run automatically on push via `.github/workflows/ci.yml`. The email tests
+(`tests/test_email_*.py`) need live SMTP credentials and are excluded from CI.
+Project documentation lives in `docs/`.
 
 ## Notes & known follow‑ups
 
