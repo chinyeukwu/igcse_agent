@@ -39,7 +39,8 @@ from src.services import (
     NotificationService,
     NotificationPreferences
 )
-from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyProfile, User, NotificationHistory
+from src.database.models import QuizAttempt, StudentAnswer, StudentDifficultyProfile, User, NotificationHistory, Session
+from src.auth.password_utils import hash_password
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -219,6 +220,7 @@ class QuestionAnswerInput(BaseModel):
     quiz_attempt_id: int
     question_number: int
     student_answer: str
+    correct_answer: Optional[str] = None  # If provided, answer is graded against it
     time_spent_seconds: Optional[int] = None
 
 
@@ -400,10 +402,28 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize database: {str(e)}")
         raise
 
+    # Optionally start the background notification scheduler.
+    # Opt-in via ENABLE_NOTIFICATION_SCHEDULER=true; no-ops cleanly if APScheduler
+    # is not installed. Kept off by default to avoid unsolicited emails.
+    app.state.notification_scheduler = None
+    if os.getenv("ENABLE_NOTIFICATION_SCHEDULER", "false").lower() == "true":
+        try:
+            from src.services.notification_scheduler import NotificationScheduler
+            scheduler = NotificationScheduler()
+            if scheduler.start():
+                app.state.notification_scheduler = scheduler
+        except Exception as e:
+            logger.error(f"Failed to start notification scheduler: {str(e)}")
+
     yield
 
     # Shutdown
     logger.info("Application shutting down...")
+    if getattr(app.state, "notification_scheduler", None):
+        try:
+            app.state.notification_scheduler.stop()
+        except Exception as e:
+            logger.warning(f"Error stopping notification scheduler: {str(e)}")
     from src.database import close_database
     close_database()
 
@@ -448,6 +468,14 @@ async def root():
     if chat_file.exists():
         return FileResponse(chat_file)
     return HTMLResponse("<h1>Chat Interface Not Found</h1>", status_code=404)
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page():
+    """Serve the login / registration page."""
+    login_file = frontend_path / "login_page.html"
+    if login_file.exists():
+        return FileResponse(login_file)
+    return HTMLResponse("<h1>Login Page Not Found</h1>", status_code=404)
 
 @app.get("/quiz", response_class=HTMLResponse)
 async def quiz_page():
@@ -543,21 +571,22 @@ async def register(data: UserRegisterInput):
 
 
 @app.post("/auth/login", status_code=status.HTTP_200_OK)
-async def login(data: UserLoginInput):
+async def login(data: UserLoginInput, request: Request):
     """
     Authenticate user and create session.
 
     Args:
         data: Login credentials (username, password)
+        request: Incoming request (used to capture client IP)
 
     Returns:
         Authentication token and user details
     """
     try:
         db_session = get_session()
-        
-        # TODO: Get client IP from request
-        client_ip = None
+
+        # Capture client IP for the session/audit trail.
+        client_ip = request.client.host if request.client else None
 
         success, error_msg, token, user = UserService.login_user(
             db_session,
@@ -599,19 +628,166 @@ async def login(data: UserLoginInput):
 
 
 @app.post("/auth/logout", status_code=status.HTTP_200_OK)
-async def logout():
+async def logout(authorization: Optional[str] = Header(None)):
     """
-    Logout user by clearing their session.
-    Does not require authentication - handles no active session gracefully.
+    Logout user by invalidating their session token.
+    Does not require a valid session (handles missing/expired tokens gracefully),
+    but when a well-formed Bearer token is supplied its session row is deleted.
 
     Returns:
         Success message
     """
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        if token and len(token) == 64:
+            try:
+                db_session = get_session()
+                UserService.logout_user(db_session, token)
+            except Exception as e:
+                logger.warning(f"Logout token invalidation failed: {str(e)}")
+
     # Always return success, whether or not there was an active session
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "Logout successful"},
     )
+
+
+# ===== User Profile Endpoints =====
+
+class UserProfileUpdateInput(BaseModel):
+    """Editable user profile fields (all optional)."""
+    full_name: Optional[str] = None
+    theme_preference: Optional[str] = None
+    password: Optional[str] = None
+
+
+def _compute_streak(history: list) -> int:
+    """Count consecutive days (ending today) that have at least one quiz."""
+    from datetime import datetime as _dt, date, timedelta as _td
+    days = set()
+    for record in history:
+        created = record.get("created_at")
+        if created:
+            try:
+                days.add(_dt.fromisoformat(created).date())
+            except (ValueError, TypeError):
+                continue
+    streak = 0
+    cursor = date.today()
+    while cursor in days:
+        streak += 1
+        cursor -= _td(days=1)
+    return streak
+
+
+@app.get("/api/user/profile", status_code=status.HTTP_200_OK)
+async def get_user_profile(current_user = Depends(get_current_user)):
+    """Return the current user's profile details and learning stats."""
+    try:
+        db_session = get_session()
+        stats = QuizService.get_quiz_statistics(
+            db_session, user_id=current_user.id, within_retention=True
+        )
+        history = QuizService.get_quiz_history(
+            db_session, user_id=current_user.id, limit=1000, within_retention=True
+        )
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "user": {
+                    "id": current_user.id,
+                    "username": current_user.username,
+                    "email": current_user.email,
+                    "full_name": current_user.full_name,
+                    "role": current_user.role,
+                    "theme_preference": current_user.theme_preference,
+                    "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+                },
+                "stats": {
+                    "total_quizzes": stats.get("total_quizzes", 0),
+                    "average_score": stats.get("average_score", 0),
+                    "streak": _compute_streak(history),
+                },
+            },
+        )
+    except Exception as e:
+        logger.error(f"Get profile error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to load profile",
+        )
+
+
+@app.patch("/api/user/profile", status_code=status.HTTP_200_OK)
+async def update_user_profile(
+    data: UserProfileUpdateInput,
+    current_user = Depends(get_current_user),
+):
+    """Update editable profile fields (full_name, theme, password)."""
+    try:
+        db_session = get_session()
+        user = db_session.query(User).filter(User.id == current_user.id).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        updated = []
+        if data.full_name is not None:
+            user.full_name = data.full_name.strip() or None
+            updated.append("full_name")
+        if data.theme_preference in ("light", "dark"):
+            user.theme_preference = data.theme_preference
+            updated.append("theme_preference")
+        if data.password:
+            if len(data.password) < 8:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Password must be at least 8 characters",
+                )
+            user.password_hash = hash_password(data.password)
+            updated.append("password")
+
+        db_session.commit()
+        logger.info(f"Profile updated for {user.username}: {updated}")
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Profile updated successfully", "updated_fields": updated},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update profile error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update profile",
+        )
+
+
+@app.delete("/api/user", status_code=status.HTTP_200_OK)
+async def delete_user_account(current_user = Depends(get_current_user)):
+    """Deactivate the current user's account and clear their sessions."""
+    try:
+        db_session = get_session()
+        user = db_session.query(User).filter(User.id == current_user.id).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        user.is_active = False
+        db_session.query(Session).filter(Session.user_id == user.id).delete()
+        db_session.commit()
+        logger.info(f"Account deactivated for {user.username}")
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Account deactivated"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete account error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete account",
+        )
 
 
 # ===== Protected Endpoints =====
@@ -1557,11 +1733,20 @@ async def submit_question_answer(
                 detail="Quiz attempt is not in progress"
             )
 
-        # For now, record as correct/incorrect based on matching (simplified)
-        # In production, this would integrate with PaperQuestion and marking schemes
-        is_correct = True  # Placeholder
+        # Grade against the supplied correct answer when provided; otherwise record
+        # the answer without auto-scoring (the primary scored flow is /quiz/submit).
+        if answer_input.correct_answer is not None:
+            is_correct = (
+                answer_input.student_answer.strip().lower()
+                == answer_input.correct_answer.strip().lower()
+            )
+            correct_answer_text = answer_input.correct_answer
+            feedback = "Correct!" if is_correct else f"Incorrect. Expected: {answer_input.correct_answer}"
+        else:
+            is_correct = False
+            correct_answer_text = "(not provided)"
+            feedback = "Answer recorded (not auto-graded; use /quiz/submit for scoring)."
         score_earned = 1.0 if is_correct else 0.0
-        feedback = "Answer recorded" if is_correct else "Incorrect"
 
         # Record the answer
         student_answer = QuizAttemptService.record_answer(
@@ -1570,7 +1755,7 @@ async def submit_question_answer(
             None,  # question_id (would be set if using PaperQuestion)
             f"Question {answer_input.question_number}",
             answer_input.student_answer,
-            "Expected answer",  # Placeholder
+            correct_answer_text,
             is_correct,
             score_earned,
             1.0,  # marks_total

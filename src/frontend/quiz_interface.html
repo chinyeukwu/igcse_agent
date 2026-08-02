@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz - IGCSE Tutor</title>
     <script src="/static/theme-manager.js"></script>
+    <script src="/static/auth.js"></script>
     <style>
         /* ===== CSS Custom Properties: Color Palette ===== */
         :root {
@@ -230,6 +231,83 @@
         .btn-secondary:hover {
             background: var(--color-border);
         }
+
+        /* ===== Quiz setup bar ===== */
+        .setup {
+            background: var(--color-surface);
+            padding: var(--space-lg);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-lg);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-md);
+            align-items: flex-end;
+        }
+        .setup .field { display: flex; flex-direction: column; gap: var(--space-xs); }
+        .setup label { font-size: var(--font-size-label); color: var(--color-text-muted); font-weight: 600; }
+        .setup select {
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            font-family: var(--font-family);
+            font-size: var(--font-size-body);
+            background: var(--color-bg);
+            color: var(--color-ink);
+            min-width: 140px;
+        }
+
+        /* ===== Multiple-choice options ===== */
+        .options { display: flex; flex-direction: column; gap: var(--space-sm); }
+        .option {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            background: var(--color-bg);
+            transition: all 0.15s ease;
+        }
+        .option:hover { border-color: var(--color-primary-green); }
+        .option input { accent-color: var(--color-primary-green); width: 18px; height: 18px; }
+        .option.selected { border-color: var(--color-primary-green); box-shadow: 0 0 0 3px rgba(72,122,51,0.12); }
+
+        /* ===== Results ===== */
+        #results { display: none; }
+        .score-card {
+            background: var(--color-surface);
+            padding: var(--space-xl);
+            border-radius: var(--radius-md);
+            text-align: center;
+            border-top: 3px solid var(--color-primary-green);
+            margin-bottom: var(--space-lg);
+        }
+        .score-value { font-size: 48px; font-weight: 700; color: var(--color-primary-green); }
+        .score-sub { color: var(--color-text-muted); margin-top: var(--space-sm); }
+        .review-item {
+            background: var(--color-surface);
+            padding: var(--space-lg);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-md);
+            border: 1px solid var(--color-border);
+        }
+        .review-item.correct { background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface)); }
+        .review-item.incorrect { background: color-mix(in oklch, var(--color-error) 8%, var(--color-surface)); }
+        .review-q { font-weight: 600; margin-bottom: var(--space-sm); }
+        .review-line { font-size: var(--font-size-label); margin-bottom: var(--space-xs); }
+        .review-line .tag { font-weight: 700; }
+        .tag.ok { color: var(--color-success); }
+        .tag.bad { color: var(--color-error); }
+        .explanation {
+            margin-top: var(--space-sm);
+            padding: var(--space-md);
+            background: var(--color-bg);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-label);
+            color: var(--color-text-muted);
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -249,96 +327,281 @@
 
     <!-- Main Content -->
     <div class="container">
-        <div class="quiz-header">
-            <div class="quiz-title" id="quiz-title">Loading Quiz...</div>
+        <!-- Setup bar: choose subject / difficulty / count and generate -->
+        <div class="setup">
+            <div class="field">
+                <label for="setup-subject">Subject</label>
+                <select id="setup-subject">
+                    <option value="maths">Maths</option>
+                    <option value="english">English</option>
+                    <option value="science">Science</option>
+                    <option value="french">French</option>
+                    <option value="finearts">Fine Arts</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="setup-difficulty">Difficulty</label>
+                <select id="setup-difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="setup-count">Questions</label>
+                <select id="setup-count">
+                    <option value="3">3</option>
+                    <option value="5" selected>5</option>
+                    <option value="10">10</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary" id="generate-btn">Generate Quiz</button>
+        </div>
+
+        <div class="quiz-header" id="quiz-header" style="display:none;">
+            <div class="quiz-title" id="quiz-title">Quiz</div>
             <div class="quiz-meta" id="quiz-meta"></div>
         </div>
 
-        <div id="loading" class="loading-text">Loading quiz questions...</div>
+        <div id="loading" class="loading-text" style="display:none;">Generating quiz questions…</div>
 
         <form id="quiz-form">
             <div id="questions-container"></div>
             <div class="actions">
                 <button type="button" class="btn btn-secondary" onclick="window.location.href='/dashboard'">Cancel</button>
-                <button type="submit" class="btn btn-primary">Submit Quiz</button>
+                <button type="submit" class="btn btn-primary" id="submit-btn">Submit Quiz</button>
             </div>
         </form>
+
+        <!-- Results -->
+        <div id="results"></div>
     </div>
 
     <script>
+        // Require a session for the authenticated quiz endpoints.
+        AUTH.requireAuth();
+
         // Logout handler
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            fetch('/auth/logout', { method: 'POST' })
-                .then(() => {
-                    window.location.href = '/login';
-                })
-                .catch(() => {
-                    window.location.href = '/login';
-                });
-        });
+        document.getElementById('logout-btn').addEventListener('click', () => AUTH.logout());
 
-        // Quiz loading logic
+        const VALID_SUBJECTS = ['maths', 'english', 'science', 'french', 'finearts'];
         const params = new URLSearchParams(window.location.search);
-        const subject = params.get('subject') || 'general';
-        const topic = params.get('topic') || '';
-        const difficulty = params.get('difficulty') || 'medium';
+        const topic = params.get('topic') || 'IGCSE Practice';
 
-        async function loadQuiz() {
+        // Pre-fill the setup bar from URL params (dashboard links pass these).
+        (function prefillFromParams() {
+            const s = (params.get('subject') || '').toLowerCase();
+            if (VALID_SUBJECTS.includes(s)) document.getElementById('setup-subject').value = s;
+            const d = (params.get('difficulty') || '').toLowerCase();
+            if (['easy', 'medium', 'hard'].includes(d)) document.getElementById('setup-difficulty').value = d;
+        })();
+
+        // State for the current quiz
+        let currentQuestions = [];  // full question objects (carry correct_answer)
+        let currentSubject = '';
+        let currentDifficulty = '';
+        let startTime = 0;
+
+        const loadingEl = document.getElementById('loading');
+        const quizForm = document.getElementById('quiz-form');
+        const quizHeader = document.getElementById('quiz-header');
+        const resultsEl = document.getElementById('results');
+        const container = document.getElementById('questions-container');
+
+        function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+        async function generateQuiz() {
+            currentSubject = document.getElementById('setup-subject').value;
+            currentDifficulty = document.getElementById('setup-difficulty').value;
+            const count = parseInt(document.getElementById('setup-count').value, 10);
+
+            // Reset views
+            resultsEl.style.display = 'none';
+            resultsEl.innerHTML = '';
+            quizForm.style.display = 'none';
+            quizHeader.style.display = 'none';
+            container.innerHTML = '';
+            loadingEl.style.display = 'block';
+
             try {
-                let query = `Create a ${difficulty} quiz`;
-                if (topic) query += ` on ${topic}`;
-                if (subject && subject !== 'general') query += ` for ${subject}`;
-
-                const resp = await fetch('/api/query', {
+                const resp = await AUTH.authFetch('/quiz/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query, subject, difficulty })
+                    body: JSON.stringify({
+                        subject: currentSubject,
+                        difficulty: currentDifficulty,
+                        question_count: count,
+                        topic: topic,
+                    }),
                 });
 
-                const data = await resp.json();
-                const text = data.response;
-
-                const questions = [];
-                const regex = /\d+\.\s+([^\n]+)/g;
-                let m;
-                while ((m = regex.exec(text)) !== null) {
-                    questions.push(m[1].trim());
-                }
-
-                if (questions.length === 0) {
-                    document.getElementById('loading').textContent = 'No questions found.';
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    loadingEl.textContent = 'Could not generate quiz: ' + (err.detail || resp.statusText);
                     return;
                 }
 
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('quiz-title').textContent = topic || subject || 'Quiz';
-                document.getElementById('quiz-meta').textContent = `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} · ${questions.length} Questions`;
+                const data = await resp.json();
+                currentQuestions = data.questions || [];
 
-                const container = document.getElementById('questions-container');
-                questions.forEach((q, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'question-container';
-                    div.innerHTML = `
-                        <div class="question-number">Question ${i + 1}</div>
-                        <div class="question-text">${q}</div>
-                        <textarea name="answer_${i}" placeholder="Enter your answer here..." required></textarea>
-                    `;
-                    container.appendChild(div);
-                });
+                if (currentQuestions.length === 0) {
+                    loadingEl.textContent = 'No questions were generated. Please try again.';
+                    return;
+                }
 
-                document.getElementById('quiz-form').style.display = 'block';
+                renderQuestions();
+                loadingEl.style.display = 'none';
+                quizHeader.style.display = 'block';
+                quizForm.style.display = 'block';
+                document.getElementById('quiz-title').textContent = topic + ' — ' + capitalize(currentSubject);
+                document.getElementById('quiz-meta').textContent =
+                    `${capitalize(currentDifficulty)} · ${currentQuestions.length} Questions`;
+                startTime = Date.now();
             } catch (e) {
-                document.getElementById('loading').textContent = 'Error loading quiz: ' + e.message;
+                loadingEl.textContent = 'Error generating quiz: ' + e.message;
             }
         }
 
-        document.getElementById('quiz-form').addEventListener('submit', (e) => {
+        function renderQuestions() {
+            container.innerHTML = '';
+            currentQuestions.forEach((q, i) => {
+                const optionsHtml = (q.options || []).map((opt, j) => `
+                    <label class="option" data-q="${i}">
+                        <input type="radio" name="answer_${i}" value="${j}">
+                        <span>${escapeHtml(opt)}</span>
+                    </label>
+                `).join('');
+                const div = document.createElement('div');
+                div.className = 'question-container';
+                div.innerHTML = `
+                    <div class="question-number">Question ${i + 1}</div>
+                    <div class="question-text">${escapeHtml(q.question || '')}</div>
+                    <div class="options">${optionsHtml}</div>
+                `;
+                container.appendChild(div);
+            });
+
+            // Visual selected-state toggle
+            container.querySelectorAll('input[type="radio"]').forEach((input) => {
+                input.addEventListener('change', () => {
+                    const qIdx = input.name.split('_')[1];
+                    container.querySelectorAll(`.option[data-q="${qIdx}"]`)
+                        .forEach((el) => el.classList.remove('selected'));
+                    input.closest('.option').classList.add('selected');
+                });
+            });
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function collectAnswers() {
+            // Returns an array of selected indices; -1 for unanswered.
+            return currentQuestions.map((_, i) => {
+                const checked = container.querySelector(`input[name="answer_${i}"]:checked`);
+                return checked ? parseInt(checked.value, 10) : -1;
+            });
+        }
+
+        quizForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            alert('Quiz submitted! Great work!');
-            window.location.href = '/dashboard';
+            const userAnswers = collectAnswers();
+            const unanswered = userAnswers.filter((a) => a === -1).length;
+            if (unanswered > 0) {
+                if (!confirm(`${unanswered} question(s) are unanswered and will be marked incorrect. Submit anyway?`)) {
+                    return;
+                }
+            }
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting…';
+            const timeTaken = Math.round((Date.now() - startTime) / 1000);
+
+            try {
+                const resp = await AUTH.authFetch('/quiz/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subject: currentSubject,
+                        difficulty: currentDifficulty,
+                        topic: topic,
+                        questions: currentQuestions,
+                        user_answers: userAnswers,
+                        time_taken_seconds: timeTaken,
+                    }),
+                });
+
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    alert('Could not submit quiz: ' + (err.detail || resp.statusText));
+                    return;
+                }
+
+                const result = await resp.json();
+                showResults(result, userAnswers);
+            } catch (e) {
+                alert('Error submitting quiz: ' + e.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Quiz';
+            }
         });
 
-        loadQuiz();
+        function showResults(result, userAnswers) {
+            quizForm.style.display = 'none';
+            quizHeader.style.display = 'none';
+
+            const reviews = currentQuestions.map((q, i) => {
+                const correctIdx = q.correct_answer;
+                const userIdx = userAnswers[i];
+                const isCorrect = userIdx === correctIdx;
+                const options = q.options || [];
+                const yourAns = userIdx >= 0 ? escapeHtml(options[userIdx] || '') : '<em>No answer</em>';
+                const correctAns = escapeHtml(options[correctIdx] || '');
+                const detail = q.workings || q.explanation || '';
+                return `
+                    <div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <div class="review-q">Q${i + 1}. ${escapeHtml(q.question || '')}</div>
+                        <div class="review-line">Your answer:
+                            <span class="tag ${isCorrect ? 'ok' : 'bad'}">${yourAns}</span></div>
+                        ${isCorrect ? '' : `<div class="review-line">Correct answer:
+                            <span class="tag ok">${correctAns}</span></div>`}
+                        ${detail ? `<div class="explanation">${escapeHtml(detail)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            resultsEl.innerHTML = `
+                <div class="score-card">
+                    <div class="score-value">${result.percentage}%</div>
+                    <div class="score-sub">${result.correct_count} / ${result.total_questions} correct</div>
+                    <div class="score-sub">${escapeHtml(result.message || '')}</div>
+                </div>
+                <h2 style="margin-bottom: var(--space-md);">Review</h2>
+                ${reviews}
+                <div class="actions">
+                    <button type="button" class="btn btn-secondary" id="retry-btn">Take Another Quiz</button>
+                    <button type="button" class="btn btn-primary" onclick="window.location.href='/dashboard'">Back to Dashboard</button>
+                </div>
+            `;
+            resultsEl.style.display = 'block';
+            document.getElementById('retry-btn').addEventListener('click', () => {
+                resultsEl.style.display = 'none';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        document.getElementById('generate-btn').addEventListener('click', generateQuiz);
+
+        // Auto-generate if a valid subject was passed in the URL.
+        if (VALID_SUBJECTS.includes((params.get('subject') || '').toLowerCase())) {
+            generateQuiz();
+        }
     </script>
 </body>
 </html>

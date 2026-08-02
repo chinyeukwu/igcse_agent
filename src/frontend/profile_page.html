@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - IGCSE Tutor</title>
     <script src="/static/theme-manager.js"></script>
+    <script src="/static/auth.js"></script>
     <style>
         :root {
             --color-primary-green: oklch(0.48 0.16 140);
@@ -328,37 +329,87 @@
     </div>
 
     <script>
-        // Load user profile data
-        function loadProfile() {
-            // In a real app, fetch from /api/user/profile
-            document.getElementById('userName').textContent = 'Alex Johnson';
-            document.getElementById('userEmail').textContent = 'alex@example.com';
-            document.getElementById('joinDate').textContent = 'Joined March 2024';
-            document.getElementById('quizzesCompleted').textContent = '24';
-            document.getElementById('avgScore').textContent = '78%';
-            document.getElementById('studyStreak').textContent = '12';
+        AUTH.requireAuth();
+
+        // Load user profile data from the API.
+        async function loadProfile() {
+            try {
+                const resp = await AUTH.authFetch('/api/user/profile');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const u = data.user || {};
+                const s = data.stats || {};
+                document.getElementById('userName').textContent = u.full_name || u.username || 'Student';
+                document.getElementById('userEmail').textContent = u.email || '';
+                if (u.created_at) {
+                    const joined = new Date(u.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                    document.getElementById('joinDate').textContent = 'Joined ' + joined;
+                }
+                document.getElementById('quizzesCompleted').textContent = s.total_quizzes || 0;
+                document.getElementById('avgScore').textContent = Math.round(s.average_score || 0) + '%';
+                document.getElementById('studyStreak').textContent = s.streak || 0;
+
+                // Restore locally-saved learning preferences (not yet server-backed).
+                const prefs = JSON.parse(localStorage.getItem('learningPrefs') || '{}');
+                if (prefs.difficulty) document.getElementById('difficulty').value = prefs.difficulty;
+                if (prefs.timezone) document.getElementById('timezone').value = prefs.timezone;
+                if (u.theme_preference) window._currentTheme = u.theme_preference;
+            } catch (e) {
+                console.error('Failed to load profile', e);
+            }
         }
 
-        function saveProfile() {
-            alert('Profile updated successfully!');
+        async function saveProfile() {
+            const password = document.getElementById('password').value;
+            const body = {};
+            if (password) body.password = password;
+
+            // Persist learning preferences locally (no server columns yet).
+            const prefs = {
+                difficulty: document.getElementById('difficulty').value,
+                timezone: document.getElementById('timezone').value,
+            };
+            localStorage.setItem('learningPrefs', JSON.stringify(prefs));
+
+            try {
+                if (Object.keys(body).length > 0) {
+                    const resp = await AUTH.authFetch('/api/user/profile', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) {
+                        alert(data.detail || 'Could not update profile.');
+                        return;
+                    }
+                    document.getElementById('password').value = '';
+                }
+                alert('Profile updated successfully!');
+            } catch (e) {
+                alert('Error updating profile: ' + e.message);
+            }
         }
 
-        function deleteAccount() {
-            if (confirm('Are you sure? This action cannot be undone.')) {
-                alert('Account deletion requested. You will receive a confirmation email.');
+        async function deleteAccount() {
+            if (!confirm('Are you sure? This will deactivate your account and cannot be undone.')) return;
+            try {
+                const resp = await AUTH.authFetch('/api/user', { method: 'DELETE' });
+                if (resp.ok) {
+                    alert('Your account has been deactivated.');
+                    AUTH.clear();
+                    window.location.href = '/login';
+                } else {
+                    const data = await resp.json().catch(() => ({}));
+                    alert(data.detail || 'Could not delete account.');
+                }
+            } catch (e) {
+                alert('Error deleting account: ' + e.message);
             }
         }
 
         // Logout handler
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            fetch('/auth/logout', { method: 'POST' })
-                .then(() => {
-                    window.location.href = '/login';
-                })
-                .catch(() => {
-                    window.location.href = '/login';
-                });
-        });
+        document.getElementById('logout-btn').addEventListener('click', () => AUTH.logout());
 
         // Load profile on page load
         loadProfile();

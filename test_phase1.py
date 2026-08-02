@@ -42,7 +42,16 @@ def test_user_registration():
 
     try:
         db_manager = get_db_manager()
-        
+
+        # Idempotent: remove any leftover test user so registration runs fresh.
+        with db_manager.get_session() as session:
+            existing = session.query(User).filter(
+                (User.username == "testuser") | (User.email == "test@example.com")
+            ).all()
+            for old in existing:
+                session.delete(old)
+            session.commit()
+
         with db_manager.get_session() as session:
             success, error, user = UserService.register_user(
                 session,

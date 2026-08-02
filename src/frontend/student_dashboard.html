@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard — Agentic AI Tutor</title>
     <script src="/static/theme-manager.js"></script>
+    <script src="/static/auth.js"></script>
     <style>
         /* ===== CSS Custom Properties: Color Palette ===== */
         :root {
@@ -1016,52 +1017,24 @@
                             <h4 style="margin-bottom: var(--space-md); color: var(--color-ink); font-weight: var(--font-weight-semibold);">📈 Score Trend</h4>
                             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);">
                                 <div style="background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); text-align: center;">
-                                    <div style="font-size: 24px; font-weight: 700; color: var(--color-primary-green);">78%</div>
+                                    <div id="st-average" style="font-size: 24px; font-weight: 700; color: var(--color-primary-green);">…</div>
                                     <div style="font-size: 12px; color: var(--color-text-muted);">Average</div>
                                 </div>
                                 <div style="background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); text-align: center;">
-                                    <div style="font-size: 24px; font-weight: 700; color: var(--color-success);">↑ +3%</div>
+                                    <div id="st-trend" style="font-size: 24px; font-weight: 700; color: var(--color-success);">…</div>
                                     <div style="font-size: 12px; color: var(--color-text-muted);">Trend</div>
                                 </div>
                                 <div style="background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); text-align: center;">
-                                    <div style="font-size: 24px; font-weight: 700; color: var(--color-primary-green);">24</div>
+                                    <div id="st-quizzes" style="font-size: 24px; font-weight: 700; color: var(--color-primary-green);">…</div>
                                     <div style="font-size: 12px; color: var(--color-text-muted);">Quizzes</div>
                                 </div>
                             </div>
-                            <p style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-top: var(--space-md);">Latest scores: 82% → 85% → 78%</p>
+                            <p id="st-latest" style="color: var(--color-text-muted); font-size: var(--font-size-label); margin-top: var(--space-md);"></p>
                         </div>
                         <!-- Accuracy by Subject -->
                         <div class="card" style="padding: var(--space-lg);">
                             <h4 style="margin-bottom: var(--space-md); color: var(--color-ink); font-weight: var(--font-weight-semibold);">🎯 Accuracy by Subject</h4>
-                            <div style="display: flex; flex-direction: column; gap: var(--space-md);">
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
-                                        <span style="font-size: 14px;">Maths</span>
-                                        <span style="font-weight: 600; color: var(--color-primary-green);">85%</span>
-                                    </div>
-                                    <div style="background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden;">
-                                        <div style="background: var(--color-primary-green); height: 100%; width: 85%; border-radius: 4px;"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
-                                        <span style="font-size: 14px;">English</span>
-                                        <span style="font-weight: 600; color: var(--color-primary-green);">72%</span>
-                                    </div>
-                                    <div style="background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden;">
-                                        <div style="background: var(--color-primary-green); height: 100%; width: 72%; border-radius: 4px;"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
-                                        <span style="font-size: 14px;">Science</span>
-                                        <span style="font-weight: 600; color: var(--color-primary-green);">79%</span>
-                                    </div>
-                                    <div style="background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden;">
-                                        <div style="background: var(--color-primary-green); height: 100%; width: 79%; border-radius: 4px;"></div>
-                                    </div>
-                                </div>
-                            </div>
+                            <div id="accuracy-list" style="display: flex; flex-direction: column; gap: var(--space-md);"></div>
                         </div>
                     </div>
                 </div>
@@ -1115,10 +1088,10 @@
                 </div>
 
                 <!-- Topics Due for Review Section -->
-                <div class="section">
+                <div class="section" id="topics-due-section">
                     <h3 class="section__title">
                         <span>🔄</span>
-                        Topics Due for Review (Spaced Repetition)
+                        Topics to Focus On
                     </h3>
                     <div class="progress-grid" id="topics-due-grid">
                         <div class="card" style="padding: var(--space-lg);">
@@ -1157,45 +1130,28 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-lg);">
                             <div>
                                 <div style="font-weight: var(--font-weight-semibold); margin-bottom: var(--space-sm);">📌 Priority Topics</div>
-                                <ul style="list-style: none; padding: 0; font-size: var(--font-size-label);">
-                                    <li>✓ Trigonometry (62% → 75%)</li>
-                                    <li>✓ Poetry Analysis (68% → 75%)</li>
-                                    <li>✓ Chemical Reactions (58% → 75%)</li>
-                                </ul>
+                                <ul id="pp-priority" style="list-style: none; padding: 0; font-size: var(--font-size-label);"></ul>
                             </div>
                             <div>
                                 <div style="font-weight: var(--font-weight-semibold); margin-bottom: var(--space-sm);">⏱️ Study Schedule</div>
-                                <ul style="list-style: none; padding: 0; font-size: var(--font-size-label);">
-                                    <li>Mon: Trigonometry (45 min)</li>
-                                    <li>Wed: Poetry Analysis (40 min)</li>
-                                    <li>Fri: Chemistry (50 min)</li>
-                                </ul>
+                                <ul id="pp-schedule" style="list-style: none; padding: 0; font-size: var(--font-size-label);"></ul>
                             </div>
                         </div>
                         <div style="background-color: rgba(255,255,255,0.2); padding: var(--space-md); border-radius: var(--radius-md);">
-                            <div style="font-size: var(--font-size-label); margin-bottom: var(--space-sm);">⏳ Time to Proficiency (85% Accuracy)</div>
-                            <div style="font-size: var(--font-size-display); font-weight: var(--font-weight-bold);">2-3 weeks</div>
-                            <p style="font-size: var(--font-size-label); margin-top: var(--space-sm);">at 5 hours/week</p>
+                            <div style="font-size: var(--font-size-label); margin-bottom: var(--space-sm);">⏳ Focus Areas</div>
+                            <div id="pp-time" style="font-size: var(--font-size-display); font-weight: var(--font-weight-bold);"></div>
+                            <p style="font-size: var(--font-size-label); margin-top: var(--space-sm);">Keep practising weak topics to raise mastery.</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Recommendations Section -->
-                <div class="section">
+                <div class="section" id="recommendations-section">
                     <h3 class="section__title">
                         <span>💡</span>
                         Recommended Next Steps
                     </h3>
-                    <div class="recommendation">
-                        <div class="recommendation__title">Grammar & Syntax (Weak Area)</div>
-                        <div class="recommendation__description">Your English grammar scores dipped 12% this week. Let's focus on strengthening this area.</div>
-                        <button class="btn-primary btn-small" id="practice-grammar-btn">Practice Grammar</button>
-                    </div>
-                    <div class="recommendation">
-                        <div class="recommendation__title">French Vocabulary Expansion</div>
-                        <div class="recommendation__description">You're making great progress! Challenge yourself with advanced vocabulary.</div>
-                        <button class="btn-primary btn-small" id="advanced-vocab-btn">Start Advanced Vocab Quiz</button>
-                    </div>
+                    <div id="recommendations-list"></div>
                 </div>
 
                 <!-- Stats Section -->
@@ -1206,19 +1162,19 @@
                     </h3>
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-card__value">5</div>
+                            <div class="stat-card__value" id="tw-quizzes">…</div>
                             <div class="stat-card__label">Quizzes Completed</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-card__value">3</div>
+                            <div class="stat-card__value" id="tw-streak">…</div>
                             <div class="stat-card__label">Day Streak</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-card__value">4h 22m</div>
+                            <div class="stat-card__value" id="tw-time">…</div>
                             <div class="stat-card__label">Time Learning</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-card__value">82%</div>
+                            <div class="stat-card__value" id="tw-avg">…</div>
                             <div class="stat-card__label">Avg Score</div>
                         </div>
                     </div>
@@ -1468,19 +1424,14 @@
             }
         });
 
-        // Simulate Student State (Demo)
-        const urlParams = new URLSearchParams(window.location.search);
-        const isFirstTime = urlParams.get('first-time') === 'true';
+        // Require an active session before showing the dashboard.
+        AUTH.requireAuth();
+
         const firstTimeFlow = document.getElementById('first-time-flow');
         const returningFlow = document.getElementById('returning-flow');
-
-        if (isFirstTime) {
-            firstTimeFlow.style.display = 'block';
-            returningFlow.style.display = 'none';
-        } else {
-            firstTimeFlow.style.display = 'none';
-            returningFlow.style.display = 'block';
-        }
+        // Hide both until real data decides which flow to show.
+        if (firstTimeFlow) firstTimeFlow.style.display = 'none';
+        if (returningFlow) returningFlow.style.display = 'none';
 
         // Modal Controls
         const modal = document.getElementById('subject-modal');
@@ -1516,14 +1467,14 @@
             card.addEventListener('click', () => {
                 // Remove previous selection
                 subjectCards.forEach(c => {
-                    c.style.borderLeft = '';
+                    c.style.outline = '';
                     c.style.backgroundColor = '';
                 });
 
-                // Mark as selected
+                // Mark as selected (subtle outline + tint, no side-tab border)
                 selectedSubject = card.getAttribute('data-subject');
-                card.style.borderLeft = '4px solid var(--color-primary-green)';
-                card.style.backgroundColor = 'var(--color-border)';
+                card.style.outline = '2px solid var(--color-primary-green)';
+                card.style.backgroundColor = 'var(--color-surface)';
 
                 // Enable start button if subject is selected
                 updateStartButtonState();
@@ -1590,34 +1541,7 @@
 
         // Logout
         const logoutBtn = document.getElementById('logout-btn');
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                const token = localStorage.getItem('auth_token') || new URLSearchParams(window.location.search).get('token') || '';
-                if (!token) {
-                    alert('No active session');
-                    return;
-                }
-
-                const response = await fetch('http://127.0.0.1:8001/auth/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    localStorage.removeItem('auth_token');
-                    alert('Logged out successfully');
-                    window.location.href = '/';
-                } else {
-                    alert('Logout failed. Please try again.');
-                }
-            } catch (error) {
-                console.error('Logout error:', error);
-                alert('Error logging out. Please check console.');
-            }
-        });
+        logoutBtn.addEventListener('click', () => AUTH.logout());
 
         // Theme Toggle button
         const themeToggle = document.getElementById('theme-toggle');
@@ -1678,36 +1602,257 @@
             });
         }
 
-        // Initialize dashboard - show content
-        function initializeDashboard() {
-            // Show appropriate flow (returning student by default)
-            const hasQuizHistory = true; // In real app, check from API
-            const returningFlow = document.getElementById('returning-flow');
-            const firstTimeFlow = document.getElementById('first-time-flow');
+        // ===== Real Data Loading =====
+        const SUBJECT_LABELS = { maths: 'Maths', english: 'English', science: 'Science', french: 'French', finearts: 'Fine Arts' };
+        const SUBJECT_TOPICS = { maths: 'Algebra, Geometry, Trigonometry', english: 'Literature, Language, Writing', science: 'Physics, Chemistry, Biology', french: 'Language & Culture', finearts: 'Art History & Theory' };
 
-            if (hasQuizHistory && returningFlow) {
-                returningFlow.style.display = 'block';
-                if (firstTimeFlow) firstTimeFlow.style.display = 'none';
-            } else if (firstTimeFlow) {
-                firstTimeFlow.style.display = 'block';
-                if (returningFlow) returningFlow.style.display = 'none';
-            }
-
-            // Set greeting date
-            const today = new Intl.DateTimeFormat('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric'
-            }).format(new Date());
-            const greetingDateEl = document.getElementById('greeting-date');
-            if (greetingDateEl) {
-                greetingDateEl.textContent = `${today} — Let's keep your momentum going`;
-            }
+        function labelFor(s) {
+            const key = (s || '').toLowerCase();
+            return SUBJECT_LABELS[key] || (s ? s.charAt(0).toUpperCase() + s.slice(1) : 'General');
+        }
+        function scoreColor(score) {
+            if (score >= 85) return 'var(--color-success)';
+            if (score >= 70) return 'var(--color-warning)';
+            return 'var(--color-error)';
+        }
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function fmtDate(iso) {
+            try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+            catch (e) { return iso; }
+        }
+        function fmtTime(secs) {
+            if (secs == null) return '—';
+            const m = Math.round(secs / 60);
+            return m < 1 ? '<1 min' : m + ' min';
         }
 
-        // Run initialization immediately and also on DOMContentLoaded
-        initializeDashboard();
-        document.addEventListener('DOMContentLoaded', initializeDashboard);
+        async function fetchJSON(url) {
+            const r = await AUTH.authFetch(url);
+            if (!r.ok) throw new Error(url + ' returned ' + r.status);
+            return r.json();
+        }
+
+        function setGreeting() {
+            const today = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
+            const el = document.getElementById('greeting-date');
+            if (el) el.textContent = today + ', keep your momentum going';
+        }
+
+        function weakSubjects(bySubject) {
+            return Object.keys(bySubject)
+                .map(s => ({ subject: s, avg: Math.round(bySubject[s].avg_score || 0) }))
+                .filter(x => x.avg < 75)
+                .sort((a, b) => a.avg - b.avg);
+        }
+
+        function attachQuizNow() {
+            document.querySelectorAll('.quiz-now-btn').forEach(btn => {
+                if (btn.dataset.bound) return;
+                btn.dataset.bound = '1';
+                btn.addEventListener('click', () => {
+                    const subject = btn.getAttribute('data-subject');
+                    const topic = btn.getAttribute('data-topic') || '';
+                    window.location.href = `/quiz?subject=${encodeURIComponent(subject)}&topic=${encodeURIComponent(topic)}`;
+                });
+            });
+        }
+
+        function renderProgress(bySubject) {
+            const grid = document.getElementById('progress-grid');
+            const keys = Object.keys(bySubject);
+            if (keys.length === 0) { grid.innerHTML = '<p style="color:var(--color-text-muted);">No subject data yet.</p>'; return; }
+            grid.innerHTML = keys.map(s => {
+                const avg = Math.round(bySubject[s].avg_score || 0);
+                return `<div class="progress-card">
+                    <div class="progress-card__subject">${labelFor(s)}</div>
+                    <div class="progress-card__bar"><div class="progress-card__fill" style="width:${avg}%;"></div></div>
+                    <div class="progress-card__percentage">${avg}% avg score</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderRecent(quizzes) {
+            const list = document.getElementById('quiz-list');
+            const recent = quizzes.slice(0, 5);
+            if (recent.length === 0) { list.innerHTML = '<p style="color:var(--color-text-muted);">No quizzes yet.</p>'; return; }
+            list.innerHTML = recent.map(q => {
+                const score = Math.round(q.score || 0);
+                return `<div class="quiz-item">
+                    <div class="quiz-item__info">
+                        <div class="quiz-item__title">${esc(q.topic || 'Quiz')}</div>
+                        <div class="quiz-item__meta">${labelFor(q.subject)} · ${fmtDate(q.created_at)}</div>
+                    </div>
+                    <div class="quiz-item__score"><span class="score-badge" style="background:${scoreColor(score)};color:#fff;">${score}%</span></div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderScoreTrend(stats, quizzes) {
+            document.getElementById('st-average').textContent = Math.round(stats.average_score || 0) + '%';
+            document.getElementById('st-quizzes').textContent = stats.total_quizzes || 0;
+            const chrono = quizzes.slice().reverse(); // oldest -> newest
+            const trendEl = document.getElementById('st-trend');
+            if (chrono.length >= 2) {
+                const diff = Math.round(chrono[chrono.length - 1].score - chrono[chrono.length - 2].score);
+                trendEl.textContent = (diff >= 0 ? '↑ +' : '↓ ') + diff + '%';
+                trendEl.style.color = diff >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+            } else {
+                trendEl.textContent = 'n/a';
+            }
+            const last = quizzes.slice(0, 3).map(q => Math.round(q.score) + '%').reverse();
+            document.getElementById('st-latest').textContent = last.length ? 'Latest scores: ' + last.join(' → ') : '';
+        }
+
+        function renderAccuracy(bySubject) {
+            const el = document.getElementById('accuracy-list');
+            const keys = Object.keys(bySubject);
+            if (keys.length === 0) { el.innerHTML = '<p style="color:var(--color-text-muted);">No data yet.</p>'; return; }
+            el.innerHTML = keys.map(s => {
+                const avg = Math.round(bySubject[s].avg_score || 0);
+                return `<div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-sm);">
+                        <span style="font-size:14px;">${labelFor(s)}</span>
+                        <span style="font-weight:600;color:${scoreColor(avg)};">${avg}%</span>
+                    </div>
+                    <div style="background:var(--color-border);height:8px;border-radius:4px;overflow:hidden;">
+                        <div style="background:${scoreColor(avg)};height:100%;width:${avg}%;border-radius:4px;"></div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderHistoryTable(quizzes) {
+            const tbody = document.getElementById('quiz-history-table');
+            if (quizzes.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="padding:var(--space-md);color:var(--color-text-muted);">No quiz history yet.</td></tr>'; return; }
+            tbody.innerHTML = quizzes.map(q => {
+                const score = Math.round(q.score || 0);
+                const diff = (q.difficulty || '');
+                return `<tr style="border-bottom:1px solid var(--color-border);">
+                    <td style="padding:var(--space-md);">${fmtDate(q.created_at)}</td>
+                    <td style="padding:var(--space-md);">${labelFor(q.subject)}</td>
+                    <td style="padding:var(--space-md);">${esc(q.topic || '-')}</td>
+                    <td style="padding:var(--space-md);text-align:center;"><span style="background:${scoreColor(score)};color:white;padding:4px 8px;border-radius:4px;">${score}%</span></td>
+                    <td style="padding:var(--space-md);text-align:center;">${esc(diff.charAt(0).toUpperCase() + diff.slice(1))}</td>
+                    <td style="padding:var(--space-md);text-align:center;">${fmtTime(q.time_taken_seconds)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderThisWeek(quizzes) {
+            const now = Date.now();
+            const weekMs = 7 * 24 * 3600 * 1000;
+            const week = quizzes.filter(q => (now - new Date(q.created_at).getTime()) <= weekMs);
+            document.getElementById('tw-quizzes').textContent = week.length;
+            const totalSecs = quizzes.reduce((a, q) => a + (q.time_taken_seconds || 0), 0);
+            const h = Math.floor(totalSecs / 3600), m = Math.round((totalSecs % 3600) / 60);
+            document.getElementById('tw-time').textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+            const wkAvg = week.length ? Math.round(week.reduce((a, q) => a + (q.score || 0), 0) / week.length) : 0;
+            document.getElementById('tw-avg').textContent = wkAvg + '%';
+            const days = new Set(quizzes.map(q => new Date(q.created_at).toDateString()));
+            let streak = 0; const d = new Date();
+            while (days.has(d.toDateString())) { streak++; d.setDate(d.getDate() - 1); }
+            document.getElementById('tw-streak').textContent = streak;
+        }
+
+        function renderTopicsDue(weak) {
+            const section = document.getElementById('topics-due-section');
+            const grid = document.getElementById('topics-due-grid');
+            if (weak.length === 0) { section.style.display = 'none'; return; }
+            section.style.display = 'block';
+            grid.innerHTML = weak.map(w => {
+                const urgent = w.avg < 60;
+                const color = urgent ? 'var(--color-error)' : 'var(--color-warning)';
+                return `<div class="card" style="padding:var(--space-lg);">
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:var(--space-md);">
+                        <div>
+                            <div style="font-weight:var(--font-weight-semibold);color:var(--color-ink);">${labelFor(w.subject)}</div>
+                            <div style="color:var(--color-text-muted);font-size:var(--font-size-label);">${SUBJECT_TOPICS[w.subject] || ''}</div>
+                        </div>
+                        <span style="background:${color};color:white;padding:4px 8px;border-radius:4px;font-size:var(--font-size-label);">${w.avg}% avg</span>
+                    </div>
+                    <p style="color:var(--color-text-muted);font-size:var(--font-size-label);margin-bottom:var(--space-md);">Urgency: <strong style="color:${color};">${urgent ? 'HIGH' : 'MEDIUM'}</strong></p>
+                    <button class="btn-primary quiz-now-btn" style="width:100%;padding:var(--space-sm) var(--space-md);font-size:var(--font-size-label);" data-subject="${w.subject}" data-topic="${labelFor(w.subject)} Practice">Quiz Now</button>
+                </div>`;
+            }).join('');
+            attachQuizNow();
+        }
+
+        function renderPracticePlan(weak) {
+            const pri = document.getElementById('pp-priority');
+            const sch = document.getElementById('pp-schedule');
+            const time = document.getElementById('pp-time');
+            if (weak.length === 0) {
+                pri.innerHTML = '<li>✓ All subjects above 75%. Great work!</li>';
+                sch.innerHTML = '<li>Keep a steady pace with mixed practice.</li>';
+                time.textContent = 'On track';
+                return;
+            }
+            pri.innerHTML = weak.slice(0, 3).map(w => `<li>✓ ${labelFor(w.subject)} (${w.avg}% → 85%)</li>`).join('');
+            const days = ['Mon', 'Wed', 'Fri', 'Tue', 'Thu'];
+            sch.innerHTML = weak.slice(0, 3).map((w, i) => `<li>${days[i]}: ${labelFor(w.subject)} (40 min)</li>`).join('');
+            time.textContent = weak.length + ' focus area' + (weak.length > 1 ? 's' : '');
+        }
+
+        function renderRecommendations(weak, quizzes) {
+            const section = document.getElementById('recommendations-section');
+            const list = document.getElementById('recommendations-list');
+            if (quizzes.length === 0) { section.style.display = 'none'; return; }
+            section.style.display = 'block';
+            if (weak.length === 0) {
+                list.innerHTML = `<div class="recommendation">
+                    <div class="recommendation__title">You're doing great!</div>
+                    <div class="recommendation__description">All subjects are above 75%. Try a harder difficulty to keep improving.</div>
+                </div>`;
+                return;
+            }
+            list.innerHTML = weak.slice(0, 2).map(w => `<div class="recommendation">
+                <div class="recommendation__title">${labelFor(w.subject)} needs attention (${w.avg}%)</div>
+                <div class="recommendation__description">Your ${labelFor(w.subject)} average is ${w.avg}%. A short focused quiz will help raise it.</div>
+                <button class="btn-primary btn-small quiz-now-btn" data-subject="${w.subject}" data-topic="${labelFor(w.subject)} Practice">Practise ${labelFor(w.subject)}</button>
+            </div>`).join('');
+            attachQuizNow();
+        }
+
+        async function loadDashboardData() {
+            setGreeting();
+            let stats, history;
+            try {
+                [stats, history] = await Promise.all([
+                    fetchJSON('/quiz/statistics'),
+                    fetchJSON('/quiz/history?limit=50'),
+                ]);
+            } catch (e) {
+                console.error('Dashboard load failed', e);
+                return;
+            }
+            const quizzes = (history && history.quizzes) || [];
+            const bySubject = (stats && stats.by_subject) || {};
+
+            // Empty state: first-time student with no quizzes.
+            if ((stats.total_quizzes || 0) === 0 || quizzes.length === 0) {
+                if (firstTimeFlow) firstTimeFlow.style.display = 'block';
+                if (returningFlow) returningFlow.style.display = 'none';
+                return;
+            }
+
+            if (returningFlow) returningFlow.style.display = 'block';
+            if (firstTimeFlow) firstTimeFlow.style.display = 'none';
+
+            const weak = weakSubjects(bySubject);
+            renderProgress(bySubject);
+            renderRecent(quizzes);
+            renderScoreTrend(stats, quizzes);
+            renderAccuracy(bySubject);
+            renderHistoryTable(quizzes);
+            renderThisWeek(quizzes);
+            renderTopicsDue(weak);
+            renderPracticePlan(weak);
+            renderRecommendations(weak, quizzes);
+        }
+
+        loadDashboardData();
     </script>
 </body>
 </html>

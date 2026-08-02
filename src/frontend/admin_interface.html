@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard — Agentic AI Tutor</title>
-    <script src="theme-manager.js"></script>
+    <script src="/static/theme-manager.js"></script>
+    <script src="/static/auth.js"></script>
     <style>
         /* ===== CSS Custom Properties ===== */
         :root {
@@ -654,15 +655,15 @@
                 <!-- Quick Stats -->
                 <div class="grid grid--3col">
                     <div class="metric">
-                        <div class="metric__value">247</div>
+                        <div class="metric__value" id="admin-total-students">…</div>
                         <div class="metric__label">Total Students</div>
                     </div>
                     <div class="metric">
-                        <div class="metric__value">1,240</div>
+                        <div class="metric__value" id="admin-total-quizzes">…</div>
                         <div class="metric__label">Quizzes Completed</div>
                     </div>
                     <div class="metric">
-                        <div class="metric__value">76%</div>
+                        <div class="metric__value" id="admin-avg-score">…</div>
                         <div class="metric__label">Average Score</div>
                     </div>
                 </div>
@@ -816,47 +817,8 @@
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr class="student-row" data-student-id="1">
-                                <td>Sarah Johnson</td>
-                                <td>sarah@example.com</td>
-                                <td>85%</td>
-                                <td>24</td>
-                                <td>Today</td>
-                                <td><button class="btn-secondary btn-small view-student">View</button></td>
-                            </tr>
-                            <tr class="student-row" data-student-id="2">
-                                <td>Marcus Chen</td>
-                                <td>marcus@example.com</td>
-                                <td>78%</td>
-                                <td>18</td>
-                                <td>Today</td>
-                                <td><button class="btn-secondary btn-small view-student">View</button></td>
-                            </tr>
-                            <tr class="student-row" data-student-id="3">
-                                <td>Emma Williams</td>
-                                <td>emma@example.com</td>
-                                <td>92%</td>
-                                <td>31</td>
-                                <td>Today</td>
-                                <td><button class="btn-secondary btn-small view-student">View</button></td>
-                            </tr>
-                            <tr class="student-row" data-student-id="4">
-                                <td>David Kumar</td>
-                                <td>david@example.com</td>
-                                <td>88%</td>
-                                <td>27</td>
-                                <td>Yesterday</td>
-                                <td><button class="btn-secondary btn-small view-student">View</button></td>
-                            </tr>
-                            <tr class="student-row" data-student-id="5">
-                                <td>Lisa Thompson</td>
-                                <td>lisa@example.com</td>
-                                <td>71%</td>
-                                <td>14</td>
-                                <td>2 days ago</td>
-                                <td><button class="btn-secondary btn-small view-student">View</button></td>
-                            </tr>
+                        <tbody id="admin-students-body">
+                            <tr><td colspan="6" style="padding: var(--space-md); color: var(--color-text-muted);">Loading students…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1065,40 +1027,32 @@
 
         // ===== Student Management =====
         const studentSearch = document.getElementById('student-search');
-        const studentRows = document.querySelectorAll('.student-row');
         const studentModal = document.getElementById('student-modal');
         const studentModalClose = document.getElementById('student-modal-close');
         const studentModalCloseBtn = document.getElementById('student-modal-close-btn');
-        const viewStudentBtns = document.querySelectorAll('.view-student');
+        const studentsBody = document.getElementById('admin-students-body');
 
         studentSearch.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
-            studentRows.forEach(row => {
+            studentsBody.querySelectorAll('.student-row').forEach(row => {
                 const text = row.textContent.toLowerCase();
                 row.style.display = text.includes(query) ? '' : 'none';
             });
         });
 
-        viewStudentBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const row = e.target.closest('.student-row');
-                const name = row.cells[0].textContent;
-                const email = row.cells[1].textContent;
-                const avgScore = row.cells[2].textContent;
-
-                document.getElementById('student-detail').innerHTML = `
-                    <h3>${name}</h3>
-                    <p><strong>Email:</strong> ${email}</p>
-                    <p><strong>Average Score:</strong> ${avgScore}</p>
-                    <p><strong>Recent Quizzes:</strong></p>
-                    <ul style="margin-left: var(--space-lg); margin-bottom: var(--space-md);">
-                        <li>Photosynthesis - 92% (10/10)</li>
-                        <li>Quadratic Equations - 78% (7/10)</li>
-                        <li>Newton's Laws - 88% (8/10)</li>
-                    </ul>
-                `;
-                studentModal.classList.add('active');
-            });
+        // View button via delegation (rows are loaded dynamically from the API).
+        studentsBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('.view-student');
+            if (!btn) return;
+            const row = btn.closest('.student-row');
+            document.getElementById('student-detail').innerHTML = `
+                <h3>${row.cells[0].textContent}</h3>
+                <p><strong>Email:</strong> ${row.cells[1].textContent}</p>
+                <p><strong>Average Score:</strong> ${row.cells[2].textContent}</p>
+                <p><strong>Quizzes Completed:</strong> ${row.cells[3].textContent}</p>
+                <p><strong>Last Active:</strong> ${row.cells[4].textContent}</p>
+            `;
+            studentModal.classList.add('active');
         });
 
         studentModalClose.addEventListener('click', () => studentModal.classList.remove('active'));
@@ -1150,9 +1104,7 @@
         quizModalCloseBtn.addEventListener('click', () => quizModal.classList.remove('active'));
 
         // ===== Logout =====
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            alert('Logging out...');
-        });
+        document.getElementById('logout-btn').addEventListener('click', () => AUTH.logout());
 
         // ===== Theme Toggle =====
         const themeToggle = document.querySelector('[data-toggle-theme]');
@@ -1163,6 +1115,58 @@
                 }
             });
         }
+
+        // ===== Admin data loading =====
+        AUTH.requireAuth();
+
+        function adminEsc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function relTime(iso) {
+            if (!iso) return 'Never';
+            const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+            if (days <= 0) return 'Today';
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return days + ' days ago';
+            return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        async function loadAdminData() {
+            try {
+                const statsResp = await AUTH.authFetch('/admin/dashboard/stats');
+                if (statsResp.status === 403) {
+                    alert('Admin access required.');
+                    window.location.href = '/dashboard';
+                    return;
+                }
+                if (statsResp.ok) {
+                    const stats = await statsResp.json();
+                    document.getElementById('admin-total-students').textContent = (stats.users && stats.users.total) || 0;
+                    document.getElementById('admin-total-quizzes').textContent = (stats.quizzes && stats.quizzes.total) || 0;
+                    document.getElementById('admin-avg-score').textContent =
+                        Math.round((stats.quizzes && stats.quizzes.average_score) || 0) + '%';
+                }
+
+                const usersResp = await AUTH.authFetch('/admin/users?limit=100');
+                if (usersResp.ok) {
+                    const data = await usersResp.json();
+                    const rows = (data.users || []).map(u => `
+                        <tr class="student-row" data-student-id="${u.id}">
+                            <td>${adminEsc(u.full_name || u.username)}</td>
+                            <td>${adminEsc(u.email)}</td>
+                            <td>${Math.round(u.average_score || 0)}%</td>
+                            <td>${u.quiz_count || 0}</td>
+                            <td>${relTime(u.last_login)}</td>
+                            <td><button class="btn-secondary btn-small view-student">View</button></td>
+                        </tr>`).join('');
+                    studentsBody.innerHTML = rows ||
+                        '<tr><td colspan="6" style="padding:var(--space-md);color:var(--color-text-muted);">No students found.</td></tr>';
+                }
+            } catch (e) {
+                console.error('Admin load failed', e);
+            }
+        }
+        loadAdminData();
     </script>
 </body>
 </html>

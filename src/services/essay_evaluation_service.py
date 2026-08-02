@@ -94,7 +94,7 @@ RESPOND WITH ONLY VALID JSON (no markdown, no code blocks):
 
         try:
             response = client.messages.create(
-                model="claude-opus-4-7",
+                model="claude-opus-4-8",
                 max_tokens=1500,
                 messages=[
                     {
@@ -201,7 +201,7 @@ RESPOND WITH ONLY VALID JSON (no markdown):
 
         try:
             response = client.messages.create(
-                model="claude-opus-4-7",
+                model="claude-opus-4-8",
                 max_tokens=2000,
                 messages=[
                     {

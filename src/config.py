@@ -7,6 +7,14 @@ Follows SonarQube standards for secure configuration management.
 import os
 from pathlib import Path
 
+# Load variables from a local .env file if python-dotenv is available.
+# Keys already set in the real environment take precedence over the file.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # ===== API Configuration =====
 openai_key = os.getenv("OPENAI_API_KEY")
 anthropic_key = os.getenv("ANTHROPIC_API_KEY")

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat with AI Tutor — Agentic AI Tutor</title>
     <script src="/static/theme-manager.js"></script>
+    <script src="/static/auth.js"></script>
     <style>
         /* ===== CSS Custom Properties: Color Palette ===== */
         :root {
@@ -974,13 +975,7 @@
 
         // Logout button handler
         document.getElementById('chat-logout-btn').addEventListener('click', () => {
-            fetch('/auth/logout', { method: 'POST' })
-                .then(() => {
-                    window.location.href = '/login';
-                })
-                .catch(() => {
-                    window.location.href = '/login';
-                });
+            AUTH.logout();
         });
 
         // Theme toggle button handler

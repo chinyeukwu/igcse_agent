@@ -28,6 +28,7 @@ class QuizGenerator:
     _client = None
     _edexcel_examples = None
     _paper_manager = None
+    _pearson_questions = None
 
     @classmethod
     def get_client(cls):
@@ -78,6 +79,36 @@ class QuizGenerator:
                 cls._paper_manager.scan_directory()
                 logger.info("Scanned papers directory")
         return cls._paper_manager
+
+    @classmethod
+    def load_pearson_questions(cls) -> Dict[str, List[Dict]]:
+        """Load extracted Pearson questions cached by the extraction script."""
+        if cls._pearson_questions is None:
+            path = os.path.join(
+                os.path.dirname(__file__), "..", "..", "data", "pearson_questions.json"
+            )
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    cls._pearson_questions = json.load(f)
+                logger.info("Loaded extracted Pearson questions cache")
+            except Exception:
+                cls._pearson_questions = {}
+        return cls._pearson_questions
+
+    @classmethod
+    def _build_pearson_questions_context(cls, subject_lower: str, max_examples: int = 4) -> str:
+        """Format a few authentic Pearson questions as style context for the prompt."""
+        data = cls.load_pearson_questions()
+        items = data.get(subject_lower, [])
+        if not items:
+            return ""
+        sample = items[:max_examples]
+        lines = ["## Authentic Pearson Exam Questions (match this style and phrasing)"]
+        for q in sample:
+            marks = f" [{q['marks']} marks]" if q.get("marks") else ""
+            cmd = f"({q['command_word']}) " if q.get("command_word") else ""
+            lines.append(f"- {cmd}{q['question_text']}{marks}")
+        return "\n".join(lines)
 
     # Quiz prompts per subject
     SUBJECT_PROMPTS = {
@@ -369,11 +400,16 @@ Difficulty: {difficulty}
             paper_manager = cls.get_paper_manager()
             papers_context = paper_manager.get_context_for_quiz_generation(subject.title())
 
+            # Load extracted Pearson questions as authentic few-shot style context
+            pearson_questions_context = cls._build_pearson_questions_context(subject_lower)
+
             # Build system prompt with Edexcel examples and Pearson papers (for caching)
             system_prompt = f"""You are an expert IGCSE quiz generator specializing in Edexcel exam patterns.
 Your role is to generate high-quality quiz questions that closely match Edexcel IGCSE exam standards.
 
 {edexcel_examples_text}
+
+{pearson_questions_context}
 
 {papers_context}
 
@@ -402,7 +438,7 @@ Your role is to generate high-quality quiz questions that closely match Edexcel 
             # Call Claude API with prompt caching
             client = cls.get_client()
             response = client.messages.create(
-                model="claude-opus-4-7",
+                model="claude-opus-4-8",
                 max_tokens=2000,
                 system=[
                     {
@@ -576,8 +612,8 @@ Your role is to generate high-quality quiz questions that closely match Edexcel 
                 {
                     "question": "What is 6 + 3 × 2?",
                     "options": ["18", "12", "9", "8"],
-                    "correct_answer": 2,
-                    "explanation": "Using order of operations (PEMDAS), multiplication comes before addition: 3 × 2 = 6, then 6 + 6 = 12. Wait, that's not right. Let me recalculate: 3 × 2 = 6, then 6 + 6 = 12. Hmm, but the answer is 12, not 9.",
+                    "correct_answer": 1,
+                    "explanation": "Using order of operations (BODMAS/PEMDAS), multiplication comes before addition: 3 × 2 = 6, then 6 + 6 = 12.",
                     "workings": "Step 1: Remember order of operations (PEMDAS/BODMAS)\nBrackets/Parentheses\nOrders/Exponents\nDivision and Multiplication (left to right)\nAddition and Subtraction (left to right)\n\nStep 2: Apply to 6 + 3 × 2\nMultiply first: 3 × 2 = 6\nThen add: 6 + 6 = 12\n\nAnswer: 12\n\nNote: NOT (6+3) × 2, because multiplication is done first"
                 },
                 {
