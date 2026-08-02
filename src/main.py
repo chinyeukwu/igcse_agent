@@ -259,6 +259,32 @@ class AdminDataExportInput(BaseModel):
     format: str = "json"  # json or csv
 
 
+class AdminQuestionCreateInput(BaseModel):
+    """Create a question-bank entry (admin)."""
+    subject: str
+    question_text: str
+    question_type: str = "short_answer"
+    difficulty_level: str = "medium"
+    marks_total: Optional[int] = None
+    paper_code: str = "manual"
+    paper_number: int = 1
+    question_number: int = 0
+    correct_answer: Optional[str] = None
+    marking_scheme: Optional[str] = None
+
+
+class AdminQuestionUpdateInput(BaseModel):
+    """Update a question-bank entry (admin); all fields optional."""
+    subject: Optional[str] = None
+    question_text: Optional[str] = None
+    question_type: Optional[str] = None
+    difficulty_level: Optional[str] = None
+    marks_total: Optional[int] = None
+    paper_code: Optional[str] = None
+    correct_answer: Optional[str] = None
+    marking_scheme: Optional[str] = None
+
+
 class NotificationPreferenceInput(BaseModel):
     """Notification preference update model."""
     email_enabled: Optional[bool] = None
@@ -3305,6 +3331,103 @@ async def get_notification_stats(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve notification statistics",
         )
+
+
+# ===== Admin Analytics & Question Bank (Parts A + B1) =====
+
+def _require_admin(current_user, db_session):
+    """Raise 403 unless the current user has admin access."""
+    is_admin, _ = AdminService.verify_admin_access(current_user.id, db_session)
+    if not is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+
+@app.get("/admin/analytics/subject-mastery", status_code=status.HTTP_200_OK)
+async def admin_subject_mastery(current_user=Depends(get_current_user)):
+    """Average score per subject and difficulty (heatmap). Admin only."""
+    db_session = get_session()
+    _require_admin(current_user, db_session)
+    success, data, error = AdminService.get_subject_mastery(db_session)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error)
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"mastery": data})
+
+
+@app.get("/admin/analytics/weak-topics", status_code=status.HTTP_200_OK)
+async def admin_weak_topics(
+    threshold: float = 70.0,
+    limit: int = 20,
+    current_user=Depends(get_current_user),
+):
+    """Lowest-scoring topics across all users. Admin only."""
+    db_session = get_session()
+    _require_admin(current_user, db_session)
+    success, data, error = AdminService.get_weak_topics(db_session, threshold=threshold, limit=limit)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error)
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"weak_topics": data})
+
+
+@app.get("/admin/questions", status_code=status.HTTP_200_OK)
+async def admin_list_questions(
+    subject: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    current_user=Depends(get_current_user),
+):
+    """List question-bank entries. Admin only."""
+    db_session = get_session()
+    _require_admin(current_user, db_session)
+    success, data, error = AdminService.list_paper_questions(db_session, subject=subject, limit=limit, offset=offset)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error)
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"questions": data, "count": len(data)})
+
+
+@app.post("/admin/questions", status_code=status.HTTP_201_CREATED)
+async def admin_create_question(
+    payload: AdminQuestionCreateInput,
+    current_user=Depends(get_current_user),
+):
+    """Create a question-bank entry. Admin only."""
+    db_session = get_session()
+    _require_admin(current_user, db_session)
+    success, data, error = AdminService.create_paper_question(db_session, payload.model_dump())
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content={"question": data})
+
+
+@app.patch("/admin/questions/{question_id}", status_code=status.HTTP_200_OK)
+async def admin_update_question(
+    question_id: int,
+    payload: AdminQuestionUpdateInput,
+    current_user=Depends(get_current_user),
+):
+    """Update a question-bank entry. Admin only."""
+    db_session = get_session()
+    _require_admin(current_user, db_session)
+    data_in = {k: v for k, v in payload.model_dump().items() if v is not None}
+    success, data, error = AdminService.update_paper_question(db_session, question_id, data_in)
+    if not success:
+        code = status.HTTP_404_NOT_FOUND if error == "Question not found" else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=code, detail=error)
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"question": data})
+
+
+@app.delete("/admin/questions/{question_id}", status_code=status.HTTP_200_OK)
+async def admin_delete_question(
+    question_id: int,
+    current_user=Depends(get_current_user),
+):
+    """Delete a question-bank entry. Admin only."""
+    db_session = get_session()
+    _require_admin(current_user, db_session)
+    success, error = AdminService.delete_paper_question(db_session, question_id)
+    if not success:
+        code = status.HTTP_404_NOT_FOUND if error == "Question not found" else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=code, detail=error)
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "Question deleted"})
 
 
 @app.get("/health", status_code=status.HTTP_200_OK)

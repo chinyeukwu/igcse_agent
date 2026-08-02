@@ -671,47 +671,13 @@
                 <!-- Subject Mastery -->
                 <div class="card">
                     <h3 class="card__title">Subject Mastery Heatmap</h3>
-                    <div class="heatmap">
-                        <div class="heatmap-row">
-                            <div class="heatmap-label">Maths</div>
-                            <div class="heatmap-cells">
-                                <div class="heatmap-cell heatmap-cell--strong" title="85%">85%</div>
-                                <div class="heatmap-cell heatmap-cell--strong">82%</div>
-                                <div class="heatmap-cell heatmap-cell--medium">71%</div>
-                                <div class="heatmap-cell heatmap-cell--weak">58%</div>
-                                <div class="heatmap-cell heatmap-cell--none">—</div>
-                            </div>
-                        </div>
-                        <div class="heatmap-row">
-                            <div class="heatmap-label">English</div>
-                            <div class="heatmap-cells">
-                                <div class="heatmap-cell heatmap-cell--strong">88%</div>
-                                <div class="heatmap-cell heatmap-cell--strong">79%</div>
-                                <div class="heatmap-cell heatmap-cell--medium">68%</div>
-                                <div class="heatmap-cell heatmap-cell--weak">52%</div>
-                                <div class="heatmap-cell heatmap-cell--weak">48%</div>
-                            </div>
-                        </div>
-                        <div class="heatmap-row">
-                            <div class="heatmap-label">Science</div>
-                            <div class="heatmap-cells">
-                                <div class="heatmap-cell heatmap-cell--strong">92%</div>
-                                <div class="heatmap-cell heatmap-cell--strong">86%</div>
-                                <div class="heatmap-cell heatmap-cell--medium">74%</div>
-                                <div class="heatmap-cell heatmap-cell--medium">65%</div>
-                                <div class="heatmap-cell heatmap-cell--weak">59%</div>
-                            </div>
-                        </div>
-                        <div class="heatmap-row">
-                            <div class="heatmap-label">French</div>
-                            <div class="heatmap-cells">
-                                <div class="heatmap-cell heatmap-cell--medium">71%</div>
-                                <div class="heatmap-cell heatmap-cell--medium">69%</div>
-                                <div class="heatmap-cell heatmap-cell--weak">55%</div>
-                                <div class="heatmap-cell heatmap-cell--weak">50%</div>
-                                <div class="heatmap-cell heatmap-cell--none">—</div>
-                            </div>
-                        </div>
+                    <div style="display:flex; gap:8px; margin-bottom:8px; padding-left:120px; color:var(--color-text-muted); font-size:13px;">
+                        <div style="flex:1; text-align:center;">Easy</div>
+                        <div style="flex:1; text-align:center;">Medium</div>
+                        <div style="flex:1; text-align:center;">Hard</div>
+                    </div>
+                    <div class="heatmap" id="mastery-heatmap">
+                        <p style="color:var(--color-text-muted);">Loading…</p>
                     </div>
                 </div>
 
@@ -727,31 +693,8 @@
                                 <th>Students</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>Grammar & Syntax</td>
-                                <td>English</td>
-                                <td>52%</td>
-                                <td>34 students</td>
-                            </tr>
-                            <tr>
-                                <td>French Verb Conjugation</td>
-                                <td>French</td>
-                                <td>50%</td>
-                                <td>28 students</td>
-                            </tr>
-                            <tr>
-                                <td>Calculus Derivatives</td>
-                                <td>Maths</td>
-                                <td>58%</td>
-                                <td>22 students</td>
-                            </tr>
-                            <tr>
-                                <td>Historical Context</td>
-                                <td>English</td>
-                                <td>54%</td>
-                                <td>19 students</td>
-                            </tr>
+                        <tbody id="weak-topics-body">
+                            <tr><td colspan="4" style="color:var(--color-text-muted);">Loading…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -826,78 +769,25 @@
 
             <!-- Quizzes Tab -->
             <section class="admin-section" data-section="quizzes">
-                <h2>Quiz Management</h2>
+                <h2>Question Bank</h2>
+                <p style="color: var(--color-text-muted); margin-bottom: var(--space-md);">Questions extracted from Pearson papers and any you add. Used as style references for AI quiz generation.</p>
 
-                <button class="btn-primary" id="create-quiz-btn">+ Create New Quiz</button>
+                <button class="btn-primary" id="create-quiz-btn">+ Add Question</button>
 
                 <div class="card" style="margin-top: var(--space-lg);">
                     <table class="table" id="quizzes-table">
                         <thead>
                             <tr>
-                                <th>Title</th>
+                                <th>Question</th>
                                 <th>Subject</th>
                                 <th>Difficulty</th>
-                                <th>Questions</th>
-                                <th>Updated</th>
+                                <th>Type</th>
+                                <th>Marks</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>Photosynthesis Basics</td>
-                                <td>Science</td>
-                                <td>Medium</td>
-                                <td>8</td>
-                                <td>2 days ago</td>
-                                <td>
-                                    <button class="btn-secondary btn-small edit-quiz">Edit</button>
-                                    <button class="btn-danger btn-small delete-quiz">Delete</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Quadratic Equations</td>
-                                <td>Maths</td>
-                                <td>Hard</td>
-                                <td>10</td>
-                                <td>5 days ago</td>
-                                <td>
-                                    <button class="btn-secondary btn-small edit-quiz">Edit</button>
-                                    <button class="btn-danger btn-small delete-quiz">Delete</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Romeo and Juliet Analysis</td>
-                                <td>English</td>
-                                <td>Medium</td>
-                                <td>12</td>
-                                <td>1 week ago</td>
-                                <td>
-                                    <button class="btn-secondary btn-small edit-quiz">Edit</button>
-                                    <button class="btn-danger btn-small delete-quiz">Delete</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Newton's Laws</td>
-                                <td>Science</td>
-                                <td>Easy</td>
-                                <td>6</td>
-                                <td>1 week ago</td>
-                                <td>
-                                    <button class="btn-secondary btn-small edit-quiz">Edit</button>
-                                    <button class="btn-danger btn-small delete-quiz">Delete</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>French Vocabulary</td>
-                                <td>French</td>
-                                <td>Medium</td>
-                                <td>15</td>
-                                <td>2 weeks ago</td>
-                                <td>
-                                    <button class="btn-secondary btn-small edit-quiz">Edit</button>
-                                    <button class="btn-danger btn-small delete-quiz">Delete</button>
-                                </td>
-                            </tr>
+                        <tbody id="questions-body">
+                            <tr><td colspan="6" style="color:var(--color-text-muted);">Loading…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -974,35 +864,45 @@
                 <button class="modal__close" id="quiz-modal-close">&times;</button>
             </div>
             <form id="quiz-form">
+                <input type="hidden" id="q-id">
                 <div class="form-group">
-                    <label>Quiz Title</label>
-                    <input type="text" id="quiz-title" required>
+                    <label>Question Text</label>
+                    <textarea id="q-text" rows="3" required style="width:100%;"></textarea>
                 </div>
                 <div class="form-group">
                     <label>Subject</label>
-                    <select id="quiz-subject" required>
-                        <option>Maths</option>
-                        <option>English</option>
-                        <option>Science</option>
-                        <option>French</option>
-                        <option>Fine Arts</option>
+                    <select id="q-subject" required>
+                        <option value="Maths">Maths</option>
+                        <option value="English Language">English Language</option>
+                        <option value="English Literature">English Literature</option>
+                        <option value="Science">Science</option>
+                        <option value="French">French</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Difficulty</label>
-                    <select id="quiz-difficulty" required>
-                        <option>Easy</option>
-                        <option>Medium</option>
-                        <option>Hard</option>
+                    <select id="q-difficulty" required>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Number of Questions</label>
-                    <input type="number" id="quiz-questions" min="1" max="50" value="8" required>
+                    <label>Question Type</label>
+                    <select id="q-type">
+                        <option value="short_answer">Short answer</option>
+                        <option value="essay">Essay</option>
+                        <option value="multiple_choice">Multiple choice</option>
+                        <option value="calculation">Calculation</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Marks</label>
+                    <input type="number" id="q-marks" min="0" max="100">
                 </div>
                 <div class="modal__actions">
                     <button type="button" class="btn-secondary" id="quiz-modal-close-btn">Cancel</button>
-                    <button type="submit" class="btn-primary">Save Quiz</button>
+                    <button type="submit" class="btn-primary">Save Question</button>
                 </div>
             </form>
         </div>
@@ -1058,46 +958,99 @@
         studentModalClose.addEventListener('click', () => studentModal.classList.remove('active'));
         studentModalCloseBtn.addEventListener('click', () => studentModal.classList.remove('active'));
 
-        // ===== Quiz Management =====
+        // ===== Question Bank (CRUD) =====
         const createQuizBtn = document.getElementById('create-quiz-btn');
         const quizModal = document.getElementById('quiz-modal');
         const quizModalClose = document.getElementById('quiz-modal-close');
         const quizModalCloseBtn = document.getElementById('quiz-modal-close-btn');
         const quizForm = document.getElementById('quiz-form');
-        const editQuizBtns = document.querySelectorAll('.edit-quiz');
-        const deleteQuizBtns = document.querySelectorAll('.delete-quiz');
+        const questionsBody = document.getElementById('questions-body');
+        let questionCache = [];  // id -> question objects for edit prefill
 
-        createQuizBtn.addEventListener('click', () => {
-            quizForm.reset();
-            document.querySelector('.modal__title').textContent = 'Create New Quiz';
-            quizModal.classList.add('active');
-        });
+        function qEsc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
 
-        editQuizBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const row = e.target.closest('tr');
-                document.getElementById('quiz-title').value = row.cells[0].textContent;
-                document.getElementById('quiz-subject').value = row.cells[1].textContent;
-                document.getElementById('quiz-difficulty').value = row.cells[2].textContent;
-                document.getElementById('quiz-questions').value = row.cells[3].textContent;
-                document.querySelector('.modal__title').textContent = 'Edit Quiz';
-                quizModal.classList.add('active');
-            });
-        });
-
-        deleteQuizBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                if (confirm('Are you sure you want to delete this quiz?')) {
-                    e.target.closest('tr').remove();
-                    alert('Quiz deleted');
+        async function loadQuestions() {
+            try {
+                const r = await AUTH.authFetch('/admin/questions?limit=100');
+                if (!r.ok) return;
+                const data = await r.json();
+                questionCache = data.questions || [];
+                if (questionCache.length === 0) {
+                    questionsBody.innerHTML = '<tr><td colspan="6" style="color:var(--color-text-muted);">No questions yet. Add one, or run the Pearson extraction script.</td></tr>';
+                    return;
                 }
-            });
+                questionsBody.innerHTML = questionCache.map(q => `
+                    <tr data-qid="${q.id}">
+                        <td>${qEsc((q.question_text || '').slice(0, 80))}${(q.question_text || '').length > 80 ? '…' : ''}</td>
+                        <td>${qEsc(q.subject)}</td>
+                        <td>${qEsc(q.difficulty_level)}</td>
+                        <td>${qEsc(q.question_type || '')}</td>
+                        <td>${q.marks_total != null ? q.marks_total : '-'}</td>
+                        <td>
+                            <button class="btn-secondary btn-small edit-q">Edit</button>
+                            <button class="btn-danger btn-small delete-q">Delete</button>
+                        </td>
+                    </tr>`).join('');
+            } catch (e) {
+                console.error('Failed to load questions', e);
+            }
+        }
+
+        function openQuestionModal(q) {
+            document.getElementById('q-id').value = q ? q.id : '';
+            document.getElementById('q-text').value = q ? (q.question_text || '') : '';
+            document.getElementById('q-subject').value = q ? q.subject : 'Maths';
+            document.getElementById('q-difficulty').value = q ? (q.difficulty_level || 'medium') : 'medium';
+            document.getElementById('q-type').value = q ? (q.question_type || 'short_answer') : 'short_answer';
+            document.getElementById('q-marks').value = (q && q.marks_total != null) ? q.marks_total : '';
+            document.querySelector('.modal__title').textContent = q ? 'Edit Question' : 'Add Question';
+            quizModal.classList.add('active');
+        }
+
+        createQuizBtn.addEventListener('click', () => openQuestionModal(null));
+
+        // Edit / delete via delegation (rows are loaded dynamically).
+        questionsBody.addEventListener('click', async (e) => {
+            const row = e.target.closest('tr[data-qid]');
+            if (!row) return;
+            const qid = parseInt(row.getAttribute('data-qid'), 10);
+            if (e.target.classList.contains('edit-q')) {
+                openQuestionModal(questionCache.find(q => q.id === qid));
+            } else if (e.target.classList.contains('delete-q')) {
+                if (!confirm('Delete this question?')) return;
+                const r = await AUTH.authFetch(`/admin/questions/${qid}`, { method: 'DELETE' });
+                if (r.ok) loadQuestions();
+                else alert('Delete failed');
+            }
         });
 
-        quizForm.addEventListener('submit', (e) => {
+        quizForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            alert('Quiz saved!');
-            quizModal.classList.remove('active');
+            const id = document.getElementById('q-id').value;
+            const marksVal = document.getElementById('q-marks').value;
+            const body = {
+                question_text: document.getElementById('q-text').value.trim(),
+                subject: document.getElementById('q-subject').value,
+                difficulty_level: document.getElementById('q-difficulty').value,
+                question_type: document.getElementById('q-type').value,
+                marks_total: marksVal === '' ? null : parseInt(marksVal, 10),
+            };
+            const url = id ? `/admin/questions/${id}` : '/admin/questions';
+            const method = id ? 'PATCH' : 'POST';
+            const r = await AUTH.authFetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            if (r.ok) {
+                quizModal.classList.remove('active');
+                loadQuestions();
+            } else {
+                const err = await r.json().catch(() => ({}));
+                alert('Save failed: ' + (err.detail || r.statusText));
+            }
         });
 
         quizModalClose.addEventListener('click', () => quizModal.classList.remove('active'));
@@ -1162,11 +1115,62 @@
                     studentsBody.innerHTML = rows ||
                         '<tr><td colspan="6" style="padding:var(--space-md);color:var(--color-text-muted);">No students found.</td></tr>';
                 }
+
+                // Subject mastery heatmap
+                const masteryResp = await AUTH.authFetch('/admin/analytics/subject-mastery');
+                if (masteryResp.ok) renderHeatmap((await masteryResp.json()).mastery || {});
+
+                // Weak topics
+                const weakResp = await AUTH.authFetch('/admin/analytics/weak-topics');
+                if (weakResp.ok) renderWeakTopics((await weakResp.json()).weak_topics || []);
             } catch (e) {
                 console.error('Admin load failed', e);
             }
         }
+
+        function masteryClass(score) {
+            if (score >= 80) return 'heatmap-cell--strong';
+            if (score >= 65) return 'heatmap-cell--medium';
+            if (score > 0) return 'heatmap-cell--weak';
+            return 'heatmap-cell--none';
+        }
+
+        function renderHeatmap(mastery) {
+            const el = document.getElementById('mastery-heatmap');
+            const subjects = Object.keys(mastery);
+            if (subjects.length === 0) {
+                el.innerHTML = '<p style="color:var(--color-text-muted);">No quiz data yet.</p>';
+                return;
+            }
+            const diffs = ['easy', 'medium', 'hard'];
+            el.innerHTML = subjects.map(s => {
+                const cells = diffs.map(d => {
+                    const cell = (mastery[s].by_difficulty || {})[d] || { avg: 0, count: 0 };
+                    const score = Math.round(cell.avg || 0);
+                    const label = cell.count ? score + '%' : '—';
+                    return `<div class="heatmap-cell ${masteryClass(cell.count ? score : 0)}" title="${cell.count} quizzes">${label}</div>`;
+                }).join('');
+                return `<div class="heatmap-row"><div class="heatmap-label">${adminEsc(s)}</div><div class="heatmap-cells">${cells}</div></div>`;
+            }).join('');
+        }
+
+        function renderWeakTopics(topics) {
+            const body = document.getElementById('weak-topics-body');
+            if (!topics.length) {
+                body.innerHTML = '<tr><td colspan="4" style="color:var(--color-text-muted);">No topics below 70%.</td></tr>';
+                return;
+            }
+            body.innerHTML = topics.map(t => `
+                <tr>
+                    <td>${adminEsc(t.topic)}</td>
+                    <td>${adminEsc(t.subject)}</td>
+                    <td>${Math.round(t.avg_score)}%</td>
+                    <td>${t.students} student${t.students === 1 ? '' : 's'}</td>
+                </tr>`).join('');
+        }
+
         loadAdminData();
+        loadQuestions();
     </script>
 </body>
 </html>

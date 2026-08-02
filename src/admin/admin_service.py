@@ -7,13 +7,13 @@ import json
 import csv
 from datetime import datetime, timedelta
 from io import StringIO
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from src.database import get_session
-from src.database.models import User, AuditLog, QuizHistory, Session, OfflineCache, AdminSettings
+from src.database.models import User, AuditLog, QuizHistory, Session, OfflineCache, AdminSettings, PaperQuestion
 
 
 class AdminService:
@@ -654,3 +654,172 @@ class AdminService:
         
         except Exception as e:
             return False, "", f"Error exporting user data: {str(e)}"
+
+    # ===== Analytics (Part A) =====
+
+    @staticmethod
+    def get_subject_mastery(db_session) -> Tuple[bool, Dict, str]:
+        """Average quiz score per subject, broken down by difficulty.
+
+        Returns { subject: { overall_avg, count, by_difficulty: {easy/medium/hard:
+        {avg, count}} } } across all users' quiz history.
+        """
+        try:
+            difficulties = ["easy", "medium", "hard"]
+            rows = db_session.query(
+                QuizHistory.subject,
+                QuizHistory.difficulty,
+                func.count(QuizHistory.id).label("cnt"),
+                func.avg(QuizHistory.score).label("avg_score"),
+            ).group_by(QuizHistory.subject, QuizHistory.difficulty).all()
+
+            mastery: Dict[str, Any] = {}
+            for subject, difficulty, cnt, avg_score in rows:
+                subj = mastery.setdefault(
+                    subject,
+                    {"overall_total": 0.0, "count": 0,
+                     "by_difficulty": {d: {"avg": 0.0, "count": 0} for d in difficulties}},
+                )
+                subj["count"] += cnt
+                subj["overall_total"] += float(avg_score or 0) * cnt
+                diff_key = (difficulty or "").lower()
+                if diff_key in subj["by_difficulty"]:
+                    subj["by_difficulty"][diff_key] = {
+                        "avg": round(float(avg_score or 0), 2),
+                        "count": cnt,
+                    }
+
+            for subj in mastery.values():
+                subj["overall_avg"] = round(subj["overall_total"] / subj["count"], 2) if subj["count"] else 0.0
+                del subj["overall_total"]
+
+            return True, mastery, ""
+        except Exception as e:
+            return False, {}, f"Error computing subject mastery: {str(e)}"
+
+    @staticmethod
+    def get_weak_topics(db_session, threshold: float = 70.0, limit: int = 20) -> Tuple[bool, List[Dict], str]:
+        """Topics with the lowest average scores across all users.
+
+        Returns a list of {subject, topic, avg_score, attempts, students}
+        ordered by ascending average score, filtered to avg < threshold.
+        """
+        try:
+            rows = db_session.query(
+                QuizHistory.subject,
+                QuizHistory.topic,
+                func.avg(QuizHistory.score).label("avg_score"),
+                func.count(QuizHistory.id).label("attempts"),
+                func.count(func.distinct(QuizHistory.user_id)).label("students"),
+            ).group_by(QuizHistory.subject, QuizHistory.topic).all()
+
+            weak = []
+            for subject, topic, avg_score, attempts, students in rows:
+                avg = round(float(avg_score or 0), 2)
+                if avg < threshold:
+                    weak.append({
+                        "subject": subject,
+                        "topic": topic or "General",
+                        "avg_score": avg,
+                        "attempts": attempts,
+                        "students": students,
+                    })
+            weak.sort(key=lambda x: x["avg_score"])
+            return True, weak[:limit], ""
+        except Exception as e:
+            return False, [], f"Error computing weak topics: {str(e)}"
+
+    # ===== Question bank CRUD (Part B1) =====
+
+    @staticmethod
+    def _question_to_dict(q: PaperQuestion) -> Dict:
+        return {
+            "id": q.id,
+            "paper_code": q.paper_code,
+            "paper_number": q.paper_number,
+            "subject": q.subject,
+            "question_number": q.question_number,
+            "question_text": q.question_text,
+            "question_type": q.question_type,
+            "marks_total": q.marks_total,
+            "difficulty_level": q.difficulty_level,
+            "source_filename": q.source_filename,
+            "created_at": q.created_at.isoformat() if q.created_at else None,
+        }
+
+    @staticmethod
+    def list_paper_questions(db_session, subject: Optional[str] = None,
+                             limit: int = 100, offset: int = 0) -> Tuple[bool, List[Dict], str]:
+        """List questions from the Pearson question bank, newest first."""
+        try:
+            query = db_session.query(PaperQuestion)
+            if subject:
+                query = query.filter(PaperQuestion.subject == subject)
+            questions = query.order_by(PaperQuestion.id.desc()).limit(limit).offset(offset).all()
+            return True, [AdminService._question_to_dict(q) for q in questions], ""
+        except Exception as e:
+            return False, [], f"Error listing questions: {str(e)}"
+
+    @staticmethod
+    def create_paper_question(db_session, data: Dict) -> Tuple[bool, Optional[Dict], str]:
+        """Create a question bank entry."""
+        try:
+            if not (data.get("question_text") or "").strip():
+                return False, None, "question_text is required"
+            if not (data.get("subject") or "").strip():
+                return False, None, "subject is required"
+            q = PaperQuestion(
+                paper_code=data.get("paper_code", "manual"),
+                paper_number=int(data.get("paper_number", 1) or 1),
+                subject=data["subject"],
+                question_number=int(data.get("question_number", 0) or 0),
+                question_text=data["question_text"],
+                question_type=data.get("question_type", "short_answer"),
+                options_json=data.get("options_json"),
+                correct_answer=data.get("correct_answer"),
+                marking_scheme=data.get("marking_scheme"),
+                marks_total=data.get("marks_total"),
+                source_filename=data.get("source_filename", "admin_entry"),
+                difficulty_level=data.get("difficulty_level", "medium"),
+            )
+            db_session.add(q)
+            db_session.commit()
+            return True, AdminService._question_to_dict(q), ""
+        except Exception as e:
+            db_session.rollback()
+            return False, None, f"Error creating question: {str(e)}"
+
+    @staticmethod
+    def update_paper_question(db_session, question_id: int, data: Dict) -> Tuple[bool, Optional[Dict], str]:
+        """Update editable fields of a question bank entry."""
+        try:
+            q = db_session.query(PaperQuestion).filter(PaperQuestion.id == question_id).first()
+            if not q:
+                return False, None, "Question not found"
+            editable = [
+                "paper_code", "paper_number", "subject", "question_number",
+                "question_text", "question_type", "options_json", "correct_answer",
+                "marking_scheme", "marks_total", "source_filename", "difficulty_level",
+            ]
+            for field in editable:
+                if field in data and data[field] is not None:
+                    setattr(q, field, data[field])
+            db_session.commit()
+            return True, AdminService._question_to_dict(q), ""
+        except Exception as e:
+            db_session.rollback()
+            return False, None, f"Error updating question: {str(e)}"
+
+    @staticmethod
+    def delete_paper_question(db_session, question_id: int) -> Tuple[bool, str]:
+        """Delete a question bank entry."""
+        try:
+            q = db_session.query(PaperQuestion).filter(PaperQuestion.id == question_id).first()
+            if not q:
+                return False, "Question not found"
+            db_session.delete(q)
+            db_session.commit()
+            return True, ""
+        except Exception as e:
+            db_session.rollback()
+            return False, f"Error deleting question: {str(e)}"
