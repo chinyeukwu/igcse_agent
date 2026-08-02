@@ -1,0 +1,11 @@
+# Minimal dependency set for CI test runs (see .github/workflows/ci.yml).
+# The full requirements.txt is a Windows-locked Poetry export whose exact pins
+# (streamlit/matplotlib/pillow/...) conflict on Linux and pull in far more than
+# the tests need. The CI test suite (test_phase1-5 + test_admin_tabs) only
+# imports these packages; pinned to the locally-verified, known-good versions.
+anthropic==0.35.0
+bcrypt==4.1.3
+pydantic==2.11.7
+sqlalchemy==2.0.41
+pdfplumber==0.11.10
+python-dotenv==1.0.1
